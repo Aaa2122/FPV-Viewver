@@ -1,185 +1,177 @@
 // Données FPV structurées pour le composant FPVSection
 export const fpvData = {
     fr: {
-        title: "Pilotage de Drone FPV",
-        subtitle: "Passion pour le vol en immersion et construction de drones racing custom",
+        title: "GEP-MARK4",
+        subtitle: "Configuration Freestyle & Cinématique Compétitive",
         specsTitle: "Spécifications",
         achievementsTitle: "Réalisations",
         videoPlaceholder: "Vidéo de vol FPV à venir",
     },
     en: {
-        title: "FPV Drone Flying",
-        subtitle: "Passion for immersive flight and custom racing drone building",
+        title: "GEP-MARK4",
+        subtitle: "Competitive Freestyle & Cinematic Build",
         specsTitle: "Specifications",
         achievementsTitle: "Achievements",
         videoPlaceholder: "FPV flight video coming soon",
     },
     specs: {
-        "Type": "5\" Racing Drone",
-        "Frame": "Carbon Fiber 220mm",
-        "Motors": "2207 1800KV",
-        "Battery": "6S 1300mAh LiPo",
-        "Weight": "~650g (with battery)",
-        "Flight Time": "4-6 minutes",
+        "Type": "5\" Freestyle",
+        "Frame": "GEP-MARK4",
+        "Motors": "XING2 2207",
+        "Stack": "SpeedyBee F7 V3",
+        "VTX": "DJI O3 Air Unit",
+        "Weight": "650g AUW",
     },
     achievements: [
-        "Construction complète d'un drone FPV custom",
-        "Maîtrise du pilotage acrobatique (flips, rolls, power loops)",
-        "Réalisation de vidéos cinématiques",
-        "Connaissance approfondie en électronique et RF"
+        "Construction intégrale custom",
+        "Tuning PID & Filtres Blackbox",
+        "Vols Long Range (>2km)",
+        "Dive Building & Powerloops"
     ],
-    video: null, // À ajouter plus tard
+    video: null,
     components: [
         {
             id: 'frame',
-            name: 'Châssis Carbon',
-            icon: '🏗️',
-            description: 'Châssis en fibre de carbone 5 pouces, ultra-léger et résistant aux chocs. Empattement de 220mm pour un excellent équilibre entre agilité et stabilité.',
-            color: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+            name: 'Frame GEP-MARK4',
+            description: 'Châssis 5 pouces en fibre de carbone T700. Géométrie Squashed-X pour un meilleur champ de vision sans hélices dans l\'image.',
+            color: '#334155',
             specs: {
-                'Matériau': 'Fibre de carbone',
-                'Empattement': '220mm',
-                'Poids': '85g',
-                'Épaisseur': '5mm (bras)'
+                'Matériau': 'Carbone T700',
+                'Empattement': '225mm',
+                'Poids': '102g',
+                'Armes': '5mm'
             },
             features: [
-                'Design X-frame optimisé',
-                'Protection des composants intégrée',
-                'Montage facile et modulaire',
-                'Compatible avec caméras GoPro'
+                'Carbone haute rigidité',
+                'Support GoPro intégré',
+                'Centre de gravité bas',
+                'Protection caméra 7075'
             ]
         },
         {
             id: 'fc',
-            name: 'Flight Controller',
-            icon: '🧠',
-            description: 'Contrôleur de vol F7 avec gyroscope haute précision et processeur puissant pour une stabilisation parfaite et des temps de réaction ultra-rapides.',
-            color: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            name: 'SpeedyBee F7 V3',
+            description: 'Stack de contrôle de vol haute performance. Processeur F722 et ESC 50A BLHeli_32 capable de gérer des courants de pointe énormes.',
+            color: '#eab308',
             specs: {
-                'Processeur': 'F7 (STM32F722)',
-                'Gyroscope': 'MPU6000',
-                'PID Loop': '8kHz',
-                'Firmware': 'Betaflight 4.4'
+                'MCU': 'STM32F722',
+                'Gyro': 'BMI270',
+                'ESC': '50A 4-in-1',
+                'Bluetooth': 'Intégré'
             },
             features: [
-                'Blackbox logging intégré',
-                'OSD (On-Screen Display)',
-                'Barometer et GPS ready',
-                'Configuration via Betaflight'
+                'Configuration sans fil',
+                'Blackbox 500MB',
+                'Baromètre intégré',
+                'Support LED WS2812'
             ]
         },
         {
             id: 'motor-fl',
-            name: 'Moteur Avant-Gauche',
-            icon: '⚙️',
-            description: 'Moteur brushless haute performance 2207 1800KV, optimisé pour les batteries 6S. Excellent rapport poids/puissance.',
-            color: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            name: 'XING2 2207 (Av-G)',
+            description: 'Moteurs légendaires pour leur fluidité et durabilité. Arbre en alliage de titane et cloche unibody 7075.',
+            color: '#3b82f6',
             specs: {
-                'Modèle': '2207 1800KV',
-                'Voltage': '6S (22.2V)',
-                'Thrust': '~1.8kg par moteur',
-                'Poids': '32g'
+                'KV': '1855KV',
+                'Config': '12N14P',
+                'Arbre': 'Titane 4mm',
+                'Poids': '30.5g'
             },
             features: [
-                'Roulements japonais haute qualité',
-                'Refroidissement optimisé',
-                'Aimants N52H',
-                'Montage T-Mount'
+                'Roulements NSK 9x4x4',
+                'Protection IP53',
+                'Aimants N52H Arc',
+                'Équilibrage dynamique'
             ]
         },
         {
             id: 'motor-fr',
-            name: 'Moteur Avant-Droit',
-            icon: '⚙️',
-            description: 'Moteur brushless haute performance 2207 1800KV, optimisé pour les batteries 6S. Excellent rapport poids/puissance.',
-            color: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            name: 'XING2 2207 (Av-D)',
+            description: 'Moteurs légendaires pour leur fluidité et durabilité. Arbre en alliage de titane et cloche unibody 7075.',
+            color: '#3b82f6',
             specs: {
-                'Modèle': '2207 1800KV',
-                'Voltage': '6S (22.2V)',
-                'Thrust': '~1.8kg par moteur',
-                'Poids': '32g'
+                'KV': '1855KV',
+                'Config': '12N14P',
+                'Arbre': 'Titane 4mm',
+                'Poids': '30.5g'
             },
             features: [
-                'Roulements japonais haute qualité',
-                'Refroidissement optimisé',
-                'Aimants N52H',
-                'Montage T-Mount'
+                'Roulements NSK 9x4x4',
+                'Protection IP53',
+                'Aimants N52H Arc',
+                'Équilibrage dynamique'
             ]
         },
         {
             id: 'motor-bl',
-            name: 'Moteur Arrière-Gauche',
-            icon: '⚙️',
-            description: 'Moteur brushless haute performance 2207 1800KV, optimisé pour les batteries 6S. Excellent rapport poids/puissance.',
-            color: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            name: 'XING2 2207 (Ar-G)',
+            description: 'Moteurs légendaires pour leur fluidité et durabilité. Arbre en alliage de titane et cloche unibody 7075.',
+            color: '#3b82f6',
             specs: {
-                'Modèle': '2207 1800KV',
-                'Voltage': '6S (22.2V)',
-                'Thrust': '~1.8kg par moteur',
-                'Poids': '32g'
+                'KV': '1855KV',
+                'Config': '12N14P',
+                'Arbre': 'Titane 4mm',
+                'Poids': '30.5g'
             },
             features: [
-                'Roulements japonais haute qualité',
-                'Refroidissement optimisé',
-                'Aimants N52H',
-                'Montage T-Mount'
+                'Roulements NSK 9x4x4',
+                'Protection IP53',
+                'Aimants N52H Arc',
+                'Équilibrage dynamique'
             ]
         },
         {
             id: 'motor-br',
-            name: 'Moteur Arrière-Droit',
-            icon: '⚙️',
-            description: 'Moteur brushless haute performance 2207 1800KV, optimisé pour les batteries 6S. Excellent rapport poids/puissance.',
-            color: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            name: 'XING2 2207 (Ar-D)',
+            description: 'Moteurs légendaires pour leur fluidité et durabilité. Arbre en alliage de titane et cloche unibody 7075.',
+            color: '#3b82f6',
             specs: {
-                'Modèle': '2207 1800KV',
-                'Voltage': '6S (22.2V)',
-                'Thrust': '~1.8kg par moteur',
-                'Poids': '32g'
+                'KV': '1855KV',
+                'Config': '12N14P',
+                'Arbre': 'Titane 4mm',
+                'Poids': '30.5g'
             },
             features: [
-                'Roulements japonais haute qualité',
-                'Refroidissement optimisé',
-                'Aimants N52H',
-                'Montage T-Mount'
+                'Roulements NSK 9x4x4',
+                'Protection IP53',
+                'Aimants N52H Arc',
+                'Équilibrage dynamique'
             ]
         },
         {
             id: 'camera',
-            name: 'Caméra FPV',
-            icon: '📹',
-            description: 'Caméra analogique 1200TVL pour retour vidéo en temps réel. Objectif 2.1mm pour un large champ de vision. WDR pour une bonne image en toutes conditions.',
-            color: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+            name: 'DJI O3 Air Unit',
+            description: 'Système de transmission vidéo numérique nouvelle génération. Enregistre en 4K/60fps tout en transmettant en 1080p avec latence <30ms.',
+            color: '#ec4899',
             specs: {
-                'Résolution': '1200TVL',
-                'Objectif': '2.1mm',
-                'WDR': 'Oui',
-                'Latence': '<10ms'
+                'Capteur': '1/1.7" CMOS',
+                'FOV': '155°',
+                'Latence': '28ms',
+                'Portée': '10km'
             },
             features: [
-                'Wide Dynamic Range (WDR)',
-                'Angle de vue 150°',
-                'Réglage d\'angle ajustable',
-                'Faible latence pour le FPV'
+                'Stabilisation RockSteady',
+                'Mémoire interne 20GB',
+                'Mode Canvas OSD',
+                'Auto-focus'
             ]
         },
         {
             id: 'battery',
-            name: 'Batterie LiPo 6S',
-            icon: '🔋',
-            description: 'Batterie Lithium Polymère 6S 1300mAh avec taux de décharge 120C. Fournit la puissance nécessaire pour des vols acrobatiques intenses.',
-            color: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            name: 'CNHL Black 6S',
+            description: 'La source d\'énergie. LiPo 6S 1300mAh avec un taux de décharge de 120C pour des appels de courant instantanés.',
+            color: '#ef4444',
             specs: {
-                'Voltage': '6S (22.2V)',
+                'Voltage': '22.2V (6S)',
                 'Capacité': '1300mAh',
-                'Décharge': '120C',
-                'Poids': '185g'
+                'C-Rate': '120C',
+                'Connecteur': 'XT60'
             },
             features: [
-                'Haute densité énergétique',
-                'Connecteur XT60',
-                'Balance charging',
-                '4-6 minutes de vol'
+                'Cellules haute densité',
+                'Câbles AWG12',
+                'Résistance interne faible',
+                'Format compact'
             ]
         }
     ]

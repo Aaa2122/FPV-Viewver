@@ -1,160 +1,144 @@
 import React, { Suspense, useRef, memo } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Environment, Sparkles, Grid } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, Environment, Sparkles, Grid, ContactShadows } from '@react-three/drei';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../lib/utils';
+import { Cpu, Battery, Camera, Activity, Fan, Minimize2, ChevronRight, Zap } from 'lucide-react';
 import DroneModel from './DroneModel';
 
-// Fiche technique en overlay 2D fixe - position adaptative (memoized)
-const TechCardOverlay = memo(({ component, onClose }) => {
+// Mapping icônes Lucide par ID de composant
+const getComponentIcon = (id) => {
+    if (id.includes('motor')) return Fan;
+    if (id.includes('camera')) return Camera;
+    if (id.includes('battery')) return Battery;
+    if (id.includes('fc')) return Cpu;
+    if (id.includes('frame')) return Activity;
+    return Activity;
+};
+
+// Fiche technique Sci-Fi Overlay
+const TechCardOverlay = memo(({ component, onClose, isDarkMode }) => {
     if (!component) return null;
 
-    // Position adaptative basée sur la position X du composant dans l'espace 3D
-    // X positif = gauche de l'écran (composant à gauche) → carte à droite
-    // X négatif = droite de l'écran (composant à droite) → carte à gauche
-    // X = 0 (centre) → carte à droite par défaut
-    const componentX = component.position?.[0] ?? 0;
-    const side = componentX >= 0 ? 'right' : 'left';
+    const Icon = getComponentIcon(component.id);
+    const isRight = (component.position?.[0] ?? 0) >= 0;
 
     return (
-        <div
-            className={`absolute top-1/2 -translate-y-1/2 z-50 ${side === 'right' ? 'right-8' : 'left-8'}`}
-        >
-            {/* Ligne de connexion horizontale vers le centre - plus longue */}
-            <svg
-                className="absolute top-1/2 -translate-y-1/2 pointer-events-none"
-                width="200"
-                height="24"
-                style={{
-                    [side === 'right' ? 'left' : 'right']: '-190px',
-                }}
+        <div className={cn(
+            "absolute top-1/2 -translate-y-1/2 z-50 pointer-events-none", // pointer-events-none sur le container pour laisser passer les clics
+            isRight ? "right-[10%]" : "left-[10%]"
+        )}>
+            {/* Background avec effet de Scanline */}
+            <motion.div
+                initial={{ opacity: 0, x: isRight ? 50 : -50, scale: 0.9 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                className={cn(
+                    "pointer-events-auto w-[350px] overflow-hidden rounded-lg border backdrop-blur-md relative group",
+                    isDarkMode
+                        ? "bg-slate-900/80 border-cyan-500/30 shadow-[0_0_50px_-12px_rgba(6,182,212,0.5)]"
+                        : "bg-white/80 border-blue-500/20 shadow-2xl"
+                )}
             >
-                {/* Ligne horizontale animée */}
-                <line
-                    x1={side === 'right' ? 0 : 200}
-                    y1="12"
-                    x2={side === 'right' ? 180 : 20}
-                    y2="12"
-                    stroke="url(#lineGradient)"
-                    strokeWidth="2"
-                    strokeDasharray="8 4"
-                    style={{ animation: 'dash 1s linear infinite' }}
-                />
-                {/* Gradient pour la ligne */}
-                <defs>
-                    <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor={side === 'right' ? '#3b82f6' : '#60a5fa'} />
-                        <stop offset="100%" stopColor={side === 'right' ? '#60a5fa' : '#3b82f6'} />
-                    </linearGradient>
-                </defs>
-                {/* Point au bout (vers le drone) */}
-                <circle
-                    cx={side === 'right' ? 180 : 20}
-                    cy="12"
-                    r="8"
-                    fill="#3b82f6"
-                    opacity="0.3"
-                />
-                <circle
-                    cx={side === 'right' ? 180 : 20}
-                    cy="12"
-                    r="5"
-                    fill="#3b82f6"
-                />
-                <circle
-                    cx={side === 'right' ? 180 : 20}
-                    cy="12"
-                    r="2"
-                    fill="#ffffff"
-                />
-            </svg>
+                {/* Ligne décorative animée en haut */}
+                <div className={cn(
+                    "absolute top-0 left-0 w-full h-1 overflow-hidden",
+                    isDarkMode ? "bg-cyan-900/50" : "bg-blue-100"
+                )}>
+                    <motion.div
+                        initial={{ x: "-100%" }}
+                        animate={{ x: "100%" }}
+                        transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                        className={cn("h-full w-1/2", isDarkMode ? "bg-cyan-500" : "bg-blue-500")}
+                    />
+                </div>
 
-            {/* Card principale */}
-            <div
-                className={`w-[320px] border border-blue-500/40 overflow-hidden animate-in ${side === 'right' ? 'slide-in-from-right-4' : 'slide-in-from-left-4'} fade-in duration-500`}
-                style={{
-                    background: 'linear-gradient(135deg, rgba(2, 6, 23, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)',
-                    backdropFilter: 'blur(20px)',
-                }}
-            >
                 {/* Header */}
-                <div className="px-5 py-4 border-b border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-transparent">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="relative">
-                                <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                                <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-blue-400 animate-ping opacity-50" />
+                <div className={cn(
+                    "p-6 border-b",
+                    isDarkMode ? "border-white/10" : "border-black/5"
+                )}>
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className={cn(
+                                "p-3 rounded-lg border",
+                                isDarkMode
+                                    ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400"
+                                    : "bg-blue-500/10 border-blue-500/20 text-blue-600"
+                            )}>
+                                <Icon className="w-6 h-6" />
                             </div>
-                            <h3 className="text-white font-bold text-base tracking-[0.12em] font-mono uppercase">
-                                {component.title}
-                            </h3>
+                            <div>
+                                <h3 className={cn(
+                                    "font-bold text-lg leading-tight tracking-wide uppercase font-mono",
+                                    isDarkMode ? "text-white" : "text-slate-900"
+                                )}>
+                                    {component.name}
+                                </h3>
+                                <div className={cn(
+                                    "text-[10px] font-mono mt-1",
+                                    isDarkMode ? "text-cyan-400" : "text-blue-500"
+                                )}>
+                                    ID: {component.id.toUpperCase()}
+                                </div>
+                            </div>
                         </div>
-                        <div className="px-2 py-0.5 bg-blue-500/20 border border-blue-500/40 text-[9px] text-blue-400 font-mono tracking-widest">
-                            SYS.ACTIVE
-                        </div>
+                        <button
+                            onClick={onClose}
+                            className={cn(
+                                "p-1 rounded opacity-50 hover:opacity-100 transition-opacity",
+                                isDarkMode ? "hover:bg-white/10 text-white" : "hover:bg-black/5 text-black"
+                            )}
+                        >
+                            <Minimize2 className="w-4 h-4" />
+                        </button>
                     </div>
                 </div>
 
-                {/* Description */}
-                <div className="px-5 py-4 border-b border-white/5">
-                    <p className="text-gray-300 text-sm leading-relaxed">
+                {/* Content */}
+                <div className="p-6 space-y-6">
+                    <p className={cn(
+                        "text-sm leading-relaxed",
+                        isDarkMode ? "text-slate-300" : "text-slate-600"
+                    )}>
                         {component.description}
                     </p>
-                </div>
 
-                {/* Specs Grid */}
-                {component.specs && Object.keys(component.specs).length > 0 && (
-                    <div className="px-5 py-4 border-b border-white/5">
-                        <div className="grid grid-cols-2 gap-3">
-                            {Object.entries(component.specs).map(([key, value], index) => (
+                    {/* Specs Grid */}
+                    {component.specs && (
+                        <div className="grid gap-2">
+                            {Object.entries(component.specs).map(([key, value], i) => (
                                 <div
                                     key={key}
-                                    className="flex justify-between items-center py-2 border-b border-white/5 animate-in fade-in slide-in-from-bottom-1"
-                                    style={{ animationDelay: `${index * 80}ms` }}
+                                    className={cn(
+                                        "flex items-center justify-between p-2 rounded text-xs font-mono border-b border-dashed",
+                                        isDarkMode ? "border-white/10 text-slate-400" : "border-black/5 text-slate-500"
+                                    )}
                                 >
-                                    <span className="text-[11px] text-gray-500 uppercase tracking-wider font-mono">
-                                        {key}
-                                    </span>
-                                    <span className="text-sm text-blue-400 font-mono font-bold">
-                                        {value}
-                                    </span>
+                                    <span className="uppercase tracking-wider">{key}</span>
+                                    <span className={cn(
+                                        "font-bold",
+                                        isDarkMode ? "text-cyan-300" : "text-blue-600"
+                                    )}>{value}</span>
                                 </div>
                             ))}
                         </div>
-                    </div>
-                )}
-
-                {/* Footer */}
-                <div className="px-5 py-3 flex items-center justify-between bg-black/30">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">
-                            STATUS:
-                        </span>
-                        <span className="text-[10px] text-emerald-400 font-mono uppercase tracking-widest flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            NOMINAL
-                        </span>
-                    </div>
-                    <span className="text-[10px] text-gray-600 font-mono">
-                        ID: {component.id?.toUpperCase()}
-                    </span>
+                    )}
                 </div>
 
-                {/* Coins décoratifs */}
-                <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-blue-500/60" />
-                <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-blue-500/60" />
-                <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-blue-500/60" />
-                <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-blue-500/60" />
-            </div>
-
-            {/* Bouton fermer */}
-            <button
-                onClick={onClose}
-                className={`absolute -top-3 ${side === 'right' ? '-right-3' : '-left-3'} w-8 h-8 rounded-lg bg-black/90 border border-white/20 hover:border-red-500/50 hover:bg-red-500/20 flex items-center justify-center transition-all duration-200 group z-10`}
-            >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="text-gray-400 group-hover:text-red-400 transition-colors">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-            </button>
+                {/* Footer Status */}
+                <div className={cn(
+                    "px-6 py-3 text-[10px] font-mono flex items-center justify-between uppercase tracking-widest",
+                    isDarkMode ? "bg-black/40 text-slate-500" : "bg-slate-50 text-slate-500"
+                )}>
+                    <span className="flex items-center gap-2">
+                        <Zap className="w-3 h-3 text-yellow-500" />
+                        SYSTEM CONNECTED
+                    </span>
+                    <span>v2.4.0</span>
+                </div>
+            </motion.div>
         </div>
     );
 });
@@ -166,133 +150,101 @@ const DroneViewer3D = ({ isDarkMode, selectedComponent, onComponentSelect, onClo
     const cameraRef = useRef();
 
     return (
-        <div className={`w-full h-[750px] rounded-3xl overflow-hidden relative border transition-colors duration-700 ${isDarkMode ? 'border-white/10 shadow-2xl shadow-black/50' : 'border-gray-200 shadow-xl shadow-gray-200/50'
-            }`}>
-            {/* Fond Harmonisé */}
-            <div
-                className="absolute inset-0 pointer-events-none transition-colors duration-700"
-                style={{
-                    background: isDarkMode
-                        ? 'radial-gradient(circle at center, #1e293b 0%, #020617 100%)' // Dark Slate -> Black
-                        : 'radial-gradient(circle at center, #f8fafc 0%, #e2e8f0 100%)'  // Slate 50 -> Slate 200
-                }}
-            />
-
-            {/* Effet lumière ambiante */}
-            <div
-                className="absolute inset-0 pointer-events-none opacity-30"
-                style={{
-                    background: 'radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.15) 0%, transparent 50%), radial-gradient(circle at 70% 70%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)'
-                }}
-            />
-
-            <Canvas
-                shadows
-                style={{ background: 'transparent', touchAction: 'none' }} // none pour fluidité mobile
-                gl={{
-                    alpha: true,
-                    antialias: true,
-                    powerPreference: 'high-performance',
-                    stencil: false,
-                    depth: true
-                }}
-                dpr={[1, 1.5]}
-                performance={{ min: 0.5 }}
-            >
-                <PerspectiveCamera
-                    ref={cameraRef}
-                    makeDefault
-                    position={[-4, 2.5, -4]} // Vue de face/gauche
-                    fov={45}
+        <div className="relative w-full h-[80vh] min-h-[600px]">
+            {/* Background Canvas */}
+            <div className={cn(
+                "absolute inset-0 rounded-3xl overflow-hidden transition-all duration-700 border",
+                isDarkMode
+                    ? "bg-[#050505] border-white/10 shadow-2xl"
+                    : "bg-slate-50 border-slate-200 shadow-xl"
+            )}>
+                {/* Graduations/Grid décorative de fond type "Blueprint" */}
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                    style={{
+                        backgroundImage: `linear-gradient(${isDarkMode ? '#fff' : '#000'} 1px, transparent 1px), linear-gradient(90deg, ${isDarkMode ? '#fff' : '#000'} 1px, transparent 1px)`,
+                        backgroundSize: '40px 40px'
+                    }}
                 />
 
-                <OrbitControls
-                    ref={controlsRef}
-                    enablePan={false}
-                    enableZoom={false} // Désactivé pour éviter le Scroll Trap
-                    maxPolarAngle={Math.PI / 1.5}
-                    minPolarAngle={0.2}
-                    enableDamping
-                    dampingFactor={0.05}
-                    rotateSpeed={0.6}
-                    minDistance={2}
-                    maxDistance={10}
-                />
+                <Canvas
+                    shadows
+                    camera={{ position: [-4, 2, 4], fov: 45 }}
+                    gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
+                    dpr={[1, 1.5]} // Optimisation perf
+                >
+                    <fog attach="fog" args={[isDarkMode ? '#050505' : '#f8fafc', 5, 20]} />
 
-                {/* Éclairage Studio Amélioré */}
-                <ambientLight intensity={isDarkMode ? 0.4 : 0.8} />
-                <spotLight
-                    position={[10, 10, 5]}
-                    angle={0.2}
-                    penumbra={1}
-                    intensity={isDarkMode ? 2 : 1.5}
-                    castShadow
-                    shadow-mapSize={[2048, 2048]}
-                />
-                <spotLight
-                    position={[-5, 5, -5]}
-                    angle={0.2}
-                    penumbra={1}
-                    intensity={1.5}
-                    color="#3b82f6" // Touche bleue
-                />
-                <pointLight position={[-4, -2, -4]} intensity={0.5} color="#60a5fa" />
-                <pointLight position={[4, -2, 4]} intensity={0.5} color="#f472b6" />
+                    <Suspense fallback={null}>
+                        <PerspectiveCamera makeDefault position={[-4, 2, 4]} />
+                        <OrbitControls
+                            makeDefault
+                            enablePan={false}
+                            minPolarAngle={0}
+                            maxPolarAngle={Math.PI / 1.5}
+                            minDistance={2}
+                            maxDistance={8}
+                        />
 
-                <Environment preset={isDarkMode ? "city" : "studio"} blur={0.8} />
+                        <Environment preset={isDarkMode ? "city" : "studio"} blur={1} />
 
-                {/* Elements de décor TECH */}
-                {/* Particules flottantes */}
-                <Sparkles
-                    count={150}
-                    scale={12}
-                    size={2}
-                    speed={0.4}
-                    opacity={isDarkMode ? 0.4 : 0.2}
-                    color={isDarkMode ? "#ffffff" : "#3b82f6"}
-                />
+                        <ambientLight intensity={isDarkMode ? 0.2 : 0.5} />
+                        <spotLight
+                            position={[10, 10, 5]}
+                            angle={0.15}
+                            penumbra={1}
+                            intensity={isDarkMode ? 2 : 1}
+                            castShadow
+                            shadow-bias={-0.0001}
+                        />
+                        {/* Lumières colorées pour ambiance Cyberpunk en dark mode */}
+                        {isDarkMode && (
+                            <>
+                                <pointLight position={[-5, 2, -5]} intensity={2} color="#06b6d4" distance={10} />
+                                <pointLight position={[5, 2, 5]} intensity={2} color="#3b82f6" distance={10} />
+                            </>
+                        )}
 
+                        <DroneModel
+                            selectedComponent={selectedComponent}
+                            onComponentSelect={onComponentSelect}
+                            onCloseComponent={onCloseComponent}
+                            cameraRef={cameraRef}
+                            controlsRef={controlsRef}
+                        />
 
+                        {/* Floating Particles */}
+                        <Sparkles
+                            count={100}
+                            scale={5}
+                            size={2}
+                            speed={0.2}
+                            opacity={0.2}
+                            color={isDarkMode ? "#06b6d4" : "#94a3b8"}
+                        />
 
-                <Suspense fallback={null}>
-                    <DroneModel
-                        selectedComponent={selectedComponent}
-                        onComponentSelect={onComponentSelect}
-                        onCloseComponent={onCloseComponent}
-                        cameraRef={cameraRef}
-                        controlsRef={controlsRef}
-                    />
-                </Suspense>
-            </Canvas>
-
-            {/* Fiche technique en overlay 2D - HORS du Canvas */}
-            <TechCardOverlay
-                component={selectedComponent}
-                onClose={onCloseComponent}
-            />
-
-            {/* Instructions */}
-            <div className={`absolute bottom-6 left-6 backdrop-blur-xl px-5 py-3 rounded-2xl text-sm border transition-all duration-500 ${isDarkMode
-                ? 'bg-white/5 border-white/10 text-white/80'
-                : 'bg-black/5 border-black/10 text-black/70'
-                }`}>
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full animate-pulse ${isDarkMode ? 'bg-blue-400' : 'bg-blue-600'}`} />
-                        <span className="font-medium">Faites glisser pour tourner • Cliquez sur un composant</span>
-                    </div>
-                </div>
+                        {/* Ombre au sol douce */}
+                        <ContactShadows
+                            resolution={1024}
+                            scale={20}
+                            blur={2}
+                            opacity={0.5}
+                            far={10}
+                            color="#000000"
+                        />
+                    </Suspense>
+                </Canvas>
             </div>
 
-            {/* Indicateur de mode isolation */}
-            {selectedComponent && (
-                <div className={`absolute top-6 left-1/2 -translate-x-1/2 backdrop-blur-xl px-6 py-2 rounded-full text-xs font-mono uppercase tracking-widest border animate-in fade-in zoom-in-95 duration-300 ${isDarkMode
-                    ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
-                    : 'bg-blue-500/10 border-blue-500/30 text-blue-600'
-                    }`}>
-                    Mode isolation : {selectedComponent.title}
-                </div>
-            )}
+            {/* Overlay UI */}
+            <AnimatePresence>
+                {selectedComponent && (
+                    <TechCardOverlay
+                        component={selectedComponent}
+                        onClose={onCloseComponent}
+                        isDarkMode={isDarkMode}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 };

@@ -1,73 +1,96 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MousePointer2, ZoomIn, Search, RotateCcw, Info } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
-const Controls = ({ isDarkMode, language, translations, selectedComponent, onResetCamera }) => {
-    const instructions = language === 'fr'
-        ? [
-            '🖱️ Clic gauche + drag : Rotation',
-            '⚙️ Molette : Zoom',
-            '👆 Clic sur hotspot : Détails du composant',
-            '🎯 Survol drone : Animation des hélices'
-        ]
-        : [
-            '🖱️ Left click + drag: Rotate',
-            '⚙️ Mouse wheel: Zoom',
-            '👆 Click hotspot: Component details',
-            '🎯 Hover drone: Propeller animation'
-        ];
+const ControlItem = ({ icon: Icon, text, isDarkMode }) => (
+    <div className={cn(
+        "flex items-center gap-3 p-3 rounded-lg transition-all duration-300",
+        isDarkMode
+            ? "bg-white/5 border border-white/5 hover:border-white/10"
+            : "bg-black/5 border border-black/5 hover:border-black/10"
+    )}>
+        <Icon className={cn("w-4 h-4", isDarkMode ? "text-blue-400" : "text-blue-600")} />
+        <span className={cn(
+            "text-xs font-mono tracking-wide",
+            isDarkMode ? "text-gray-400" : "text-gray-600"
+        )}>
+            {text}
+        </span>
+    </div>
+);
+
+const Controls = ({ isDarkMode, language, selectedComponent, onResetCamera }) => {
+    const t = {
+        rotate: language === 'fr' ? 'Rotation' : 'Rotate',
+        zoom: language === 'fr' ? 'Zoomer' : 'Zoom',
+        inspect: language === 'fr' ? 'Inspecter' : 'Inspect',
+        reset: language === 'fr' ? 'Réinitialiser la Vue' : 'Reset View',
+        tip: language === 'fr' ? 'MODE INTERACTIF ACTIF' : 'INTERACTIVE MODE ACTIVE'
+    };
 
     return (
-        <div className={`rounded-3xl p-8 transition-all duration-500 ${isDarkMode
-                ? 'bg-white/5 border border-white/10 backdrop-blur-sm'
-                : 'bg-gray-100 border border-gray-200'
-            }`}>
-            <h3 className={`text-2xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>
-                {language === 'fr' ? '📖 Instructions' : '📖 Instructions'}
-            </h3>
+        <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className={cn(
+                "fixed bottom-8 left-1/2 -translate-x-1/2 z-40",
+                "flex flex-col items-center gap-4"
+            )}
+        >
+            {/* Flight HUD Controls */}
+            <div className={cn(
+                "flex items-center gap-2 p-2 rounded-2xl backdrop-blur-xl shadow-2xl border",
+                isDarkMode
+                    ? "bg-black/40 border-white/10 shadow-black/50"
+                    : "bg-white/60 border-black/5 shadow-gray-200/50"
+            )}>
+                <ControlItem
+                    icon={MousePointer2}
+                    text={t.rotate}
+                    isDarkMode={isDarkMode}
+                />
+                <ControlItem
+                    icon={ZoomIn}
+                    text={t.zoom}
+                    isDarkMode={isDarkMode}
+                />
+                <ControlItem
+                    icon={Search}
+                    text={t.inspect}
+                    isDarkMode={isDarkMode}
+                />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                {instructions.map((instruction, index) => (
-                    <div
-                        key={index}
-                        className={`p-4 rounded-lg transition-colors duration-300 ${isDarkMode
-                                ? 'bg-white/5 border border-white/5'
-                                : 'bg-white border border-gray-200'
-                            }`}
-                    >
-                        <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                            }`}>
-                            {instruction}
-                        </p>
-                    </div>
-                ))}
-            </div>
+                <div className={cn("w-px h-8 mx-2", isDarkMode ? "bg-white/10" : "bg-black/10")} />
 
-            {/* Reset Camera Button */}
-            {selectedComponent && (
                 <button
                     onClick={onResetCamera}
-                    className={`w-full py-3 px-6 rounded-lg font-medium transition-all duration-300 ${isDarkMode
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                            : 'bg-blue-500 hover:bg-blue-600 text-white'
-                        }`}
+                    className={cn(
+                        "p-3 rounded-xl transition-all duration-300 flex items-center gap-2",
+                        isDarkMode
+                            ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20"
+                            : "bg-blue-500 hover:bg-blue-400 text-white shadow-lg shadow-blue-500/20"
+                    )}
                 >
-                    {language === 'fr' ? '🔄 Réinitialiser la vue' : '🔄 Reset View'}
+                    <RotateCcw className="w-4 h-4" />
                 </button>
-            )}
-
-            {/* Tips */}
-            <div className={`mt-6 p-4 rounded-lg ${isDarkMode
-                    ? 'bg-blue-500/10 border border-blue-500/20'
-                    : 'bg-blue-50 border border-blue-200'
-                }`}>
-                <p className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-700'
-                    }`}>
-                    💡 {language === 'fr'
-                        ? 'Astuce : Survolez les points blancs pour afficher les noms des composants !'
-                        : 'Tip: Hover over white dots to display component names!'}
-                </p>
             </div>
-        </div>
+
+            {/* Status Line */}
+            <div className="flex items-center gap-2">
+                <div className={cn(
+                    "w-1.5 h-1.5 rounded-full animate-pulse",
+                    isDarkMode ? "bg-emerald-400" : "bg-emerald-500"
+                )} />
+                <span className={cn(
+                    "text-[10px] font-mono tracking-[0.2em] opacity-50",
+                    isDarkMode ? "text-white" : "text-black"
+                )}>
+                    {t.tip}
+                </span>
+            </div>
+        </motion.div>
     );
 };
 
