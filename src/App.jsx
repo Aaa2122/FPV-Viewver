@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from './components/ui/Header';
 import Controls from './components/ui/Controls';
 import DroneViewer3D from './components/DroneViewer3D';
+import Configurator from './components/Configurator';
 import { fpvData } from './data/fpvData';
 import { cn } from './lib/utils';
 
@@ -9,6 +10,7 @@ function App() {
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [language, setLanguage] = useState('fr');
     const [selectedComponent, setSelectedComponent] = useState(null);
+    const [currentBuild, setCurrentBuild] = useState(null);
 
     // Apply dark mode class to document
     useEffect(() => {
@@ -23,6 +25,11 @@ function App() {
 
     const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
     const toggleLanguage = () => setLanguage(language === 'fr' ? 'en' : 'fr');
+
+    const handleBuildChange = (newBuild) => {
+        setCurrentBuild(newBuild);
+        // Future: Update 3D model based on build changes
+    };
 
     const t = language === 'fr' ? fpvData.fr : fpvData.en;
 
@@ -79,6 +86,12 @@ function App() {
                     translations={t}
                     selectedComponent={selectedComponent}
                     onResetCamera={() => setSelectedComponent(null)}
+                />
+
+                <Configurator
+                    isDarkMode={isDarkMode}
+                    language={language}
+                    onBuildChange={handleBuildChange}
                 />
             </main>
         </div>
