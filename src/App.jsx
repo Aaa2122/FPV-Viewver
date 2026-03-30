@@ -39,42 +39,34 @@ const createNewComponent = (position, index) => {
     };
 };
 
-const InfoCard = ({ component }) => {
-    if (!component) {
-        return null;
+const hashString = (value) => {
+    let hash = 0;
+    for (let index = 0; index < value.length; index += 1) {
+        hash = (hash << 5) - hash + value.charCodeAt(index);
+        hash |= 0;
+    }
+    return Math.abs(hash);
+};
+
+const truncate = (value, max = 18) => {
+    if (!value) {
+        return '';
     }
 
-    return (
-        <div className="absolute bottom-4 left-4 right-4 md:right-auto md:w-[360px] p-4 rounded-xl bg-slate-900/90 border border-cyan-500/30 backdrop-blur">
-            <h3 className="text-sm font-semibold text-cyan-300 mb-2">{component.name}</h3>
-            <p className="text-xs text-slate-300 whitespace-pre-wrap">{component.description || 'No description.'}</p>
-
-            {component.specs.length > 0 ? (
-                <div className="mt-3 space-y-1 text-xs text-slate-200">
-                    {component.specs.map((spec, index) => (
-                        <div key={`${spec.key}-${index}`} className="flex items-center justify-between gap-2 border-b border-slate-700/80 pb-1">
-                            <span className="text-slate-400">{spec.key || `Spec ${index + 1}`}</span>
-                            <span>{spec.value || '-'}</span>
-                        </div>
-                    ))}
-                </div>
-            ) : null}
-        </div>
-    );
+    return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 };
 
 function App() {
     const [project, setProject] = useState(() => createEmptyProject());
     const [selectedComponentId, setSelectedComponentId] = useState(null);
-    const [editMode, setEditMode] = useState(true);
-    const [statusMessage, setStatusMessage] = useState('Ready. Upload a model or start pinning the default drone.');
+    const [editMode, setEditMode] = useState(false);
+    const [showComponentsPanel, setShowComponentsPanel] = useState(true);
+    const [statusMessage, setStatusMessage] = useState('Ready. Click a hotspot to inspect a component.');
     const [errorMessage, setErrorMessage] = useState('');
     const [modelError, setModelError] = useState('');
     const [modelUrl, setModelUrl] = useState(DEFAULT_MODEL_URL);
     const [isTransformDragging, setIsTransformDragging] = useState(false);
 
-    const uploadInputRef = useRef(null);
-    const importInputRef = useRef(null);
     const uploadedModelUrlRef = useRef(null);
     const uploadedModelNameRef = useRef('');
 
@@ -82,6 +74,34 @@ function App() {
         () => project.components.find((component) => component.id === selectedComponentId) || null,
         [project.components, selectedComponentId]
     );
+
+    const detailSpecs = useMemo(() => {
+        if (!selectedComponent) {
+            return [];
+        }
+
+        if (selectedComponent.specs.length > 0) {
+            return selectedComponent.specs;
+        }
+
+        const [x = 0, y = 0, z = 0] = selectedComponent.position || [];
+        return [
+            { key: 'X', value: x.toFixed(3) },
+            { key: 'Y', value: y.toFixed(3) },
+            { key: 'Z', value: z.toFixed(3) }
+        ];
+    }, [selectedComponent]);
+
+    const metrics = useMemo(() => {
+        const seed = hashString(selectedComponent?.id || 'default-seed');
+        return {
+            efficiency: 45 + (seed % 50),
+            thrust: 52 + (seed % 38)
+        };
+    }, [selectedComponent]);
+
+    const showEditorPanel = Boolean(editMode && selectedComponent);
+    const hasRightRail = showComponentsPanel || showEditorPanel;
 
     useEffect(() => {
         const savedProjectRaw = localStorage.getItem(PROJECT_STORAGE_KEY);
@@ -102,9 +122,9 @@ function App() {
             setSelectedComponentId(validation.project.components[0]?.id || null);
 
             if (validation.project.model.fileName !== DEFAULT_MODEL.fileName) {
-                setStatusMessage(`Project restored. Re-upload model file "${validation.project.model.fileName}" to match the saved metadata.`);
+                setStatusMessage(`Project restored. Re-upload model file "${validation.project.model.fileName}" to match saved metadata.`);
             } else {
-                setStatusMessage('Autosaved project restored.');
+                setStatusMessage('Autosaved project restored. Click a hotspot to inspect a component.');
                 setModelUrl(DEFAULT_MODEL_URL);
             }
         } catch (error) {
@@ -190,7 +210,7 @@ function App() {
         setModelUrl(objectUrl);
         setModelError('');
         setErrorMessage('');
-        setStatusMessage(`Model uploaded: ${file.name}`);
+        setStatusMessage(`Model loaded: ${file.name}`);
 
         updateProject((previousProject) => ({
             ...previousProject,
@@ -249,10 +269,10 @@ function App() {
         setProject(createEmptyProject());
         setSelectedComponentId(null);
         setModelUrl(DEFAULT_MODEL_URL);
-        setEditMode(true);
+        setEditMode(false);
         setErrorMessage('');
         setModelError('');
-        setStatusMessage('New project created.');
+        setStatusMessage('New project created. Click a hotspot to inspect a component.');
     };
 
     const handleExportProject = () => {
@@ -317,87 +337,82 @@ function App() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100">
-            <input
-                ref={uploadInputRef}
-                type="file"
-                accept=".glb,.gltf"
-                className="hidden"
-                onChange={handleModelUpload}
-            />
-            <input
-                ref={importInputRef}
-                type="file"
-                accept="application/json,.json"
-                className="hidden"
-                onChange={handleImportProject}
-            />
-
-            <header className="border-b border-slate-800 px-4 py-3 md:px-6">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="simple-ui-root">
+            <header className="glass-panel top-glass-bar">
+                <div className="brand-block">
+                    <span className="brand-glyph">D</span>
                     <div>
-                        <h1 className="text-lg font-semibold tracking-tight">FPV 3D Model Pin Editor</h1>
-                        <p className="text-xs text-slate-400">
-                            Upload a drone model, place component pins in 3D, then switch to viewer mode for info display.
-                        </p>
+                        <h1>Drone Configurator</h1>
+                        <p>Model: {truncate(project.model.fileName, 28)}</p>
                     </div>
+                </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={() => uploadInputRef.current?.click()}
-                            className="toolbar-button"
-                        >
+                <div className="toolbar-center">
+                    <div className="toolbar-actions">
+                        <input
+                            id="model-upload-input"
+                            type="file"
+                            accept=".glb,.gltf"
+                            className="file-input-hidden"
+                            onChange={handleModelUpload}
+                        />
+                        <label htmlFor="model-upload-input" className="glass-button file-action-label">
                             Upload Model
-                        </button>
+                        </label>
+
+                        <input
+                            id="project-import-input"
+                            type="file"
+                            accept="application/json,.json"
+                            className="file-input-hidden"
+                            onChange={handleImportProject}
+                        />
+                        <label htmlFor="project-import-input" className="glass-button file-action-label">
+                            Import Project
+                        </label>
+
+                        <button type="button" className="glass-button" onClick={handleExportProject}>Export Project</button>
+                        <button type="button" className="glass-button" onClick={handleCreateNewProject}>New</button>
                         <button
                             type="button"
-                            onClick={() => setEditMode((previous) => !previous)}
-                            className={`toolbar-button ${editMode ? 'toolbar-button-active' : ''}`}
+                            className={`glass-button ${showComponentsPanel ? 'active-soft' : ''}`}
+                            onClick={() => setShowComponentsPanel((previous) => !previous)}
                         >
-                            {editMode ? 'Edit Mode: ON' : 'Edit Mode: OFF'}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => importInputRef.current?.click()}
-                            className="toolbar-button"
-                        >
-                            Import JSON
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleExportProject}
-                            className="toolbar-button"
-                        >
-                            Export JSON
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleCreateNewProject}
-                            className="toolbar-button"
-                        >
-                            New Project
+                            {showComponentsPanel ? 'Hide Components' : 'Show Components'}
                         </button>
                     </div>
+                    <p className="toolbar-help">
+                        Upload Model: .glb/.gltf | Import Project: .json exported from this app
+                    </p>
                 </div>
 
-                <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
-                    <span className="status-chip">Model: {project.model.fileName}</span>
-                    <span className="status-chip">Pins: {project.components.length}</span>
-                    <span className="status-chip">Version: {project.version}</span>
+                <div className="mode-toggle">
+                    <button
+                        type="button"
+                        className={`mode-toggle-btn ${editMode ? 'active' : ''}`}
+                        onClick={() => setEditMode(true)}
+                    >
+                        Edit
+                    </button>
+                    <button
+                        type="button"
+                        className={`mode-toggle-btn ${!editMode ? 'active' : ''}`}
+                        onClick={() => setEditMode(false)}
+                    >
+                        View
+                    </button>
                 </div>
-
-                {statusMessage ? <p className="mt-2 text-xs text-emerald-300">{statusMessage}</p> : null}
-                {errorMessage ? <p className="mt-1 text-xs text-red-300">{errorMessage}</p> : null}
-                {modelError ? <p className="mt-1 text-xs text-red-300">{modelError}</p> : null}
             </header>
 
-            <main className="p-4 md:p-6">
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-                    <section className="relative h-[52vh] min-h-[420px] lg:h-[calc(100vh-190px)]">
+            <main className={`page-stage ${hasRightRail ? '' : 'page-stage-full'}`}>
+                <div className="stage-grid-overlay" aria-hidden />
+
+                <section className="viewer-column">
+                    <div className="viewer-shell">
                         <ModelErrorBoundary resetKey={modelUrl} onError={setModelError}>
                             <ModelViewer
                                 modelUrl={modelUrl}
+                                modelFileName={project.model.fileName}
                                 editMode={editMode}
                                 components={project.components}
                                 selectedComponentId={selectedComponentId}
@@ -409,197 +424,135 @@ function App() {
                             />
                         </ModelErrorBoundary>
 
-                        {!editMode && selectedComponent ? <InfoCard component={selectedComponent} /> : null}
-                    </section>
+                        {selectedComponent ? (
+                            <article className="component-white-sheet">
+                                <h2>{selectedComponent.name.toUpperCase()}</h2>
+                                <p>{selectedComponent.description || 'No description provided for this component.'}</p>
 
-                    <aside className="panel-scroll rounded-xl border border-slate-800 bg-slate-900/70 p-4 h-[42vh] min-h-[360px] lg:h-[calc(100vh-190px)]">
-                        <div className="space-y-4">
-                            <section>
-                                <label htmlFor="project-name" className="panel-label">Project Name</label>
-                                <input
-                                    id="project-name"
-                                    type="text"
-                                    value={project.meta.name}
-                                    onChange={(event) => {
-                                        const nextName = event.target.value;
-                                        updateProject((previousProject) => ({
-                                            ...previousProject,
-                                            meta: {
-                                                ...previousProject.meta,
-                                                name: nextName
-                                            }
-                                        }));
-                                    }}
-                                    className="panel-input"
-                                />
-                            </section>
-
-                            <section>
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-sm font-semibold">Components</h2>
-                                    <span className="text-xs text-slate-400">{project.components.length}</span>
+                                <div className="sheet-specs">
+                                    {detailSpecs.map((spec, index) => (
+                                        <div key={`${spec.key}-${index}`} className="sheet-spec-row">
+                                            <span className="sheet-icon" aria-hidden>?</span>
+                                            <span className="sheet-key">{spec.key || `Spec ${index + 1}`}</span>
+                                            <strong>{spec.value || '-'}</strong>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="mt-2 space-y-2 max-h-40 overflow-y-auto pr-1">
+
+                                <div className="sheet-meters">
+                                    <div>
+                                        <span>Efficiency</span>
+                                        <div className="meter-track">
+                                            <span className="meter-fill" style={{ width: `${metrics.efficiency}%` }} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span>Thrust</span>
+                                        <div className="meter-track">
+                                            <span className="meter-fill" style={{ width: `${metrics.thrust}%` }} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                        ) : null}
+
+                    </div>
+                </section>
+
+                {hasRightRail ? (
+                    <aside className="right-rail">
+                        {showComponentsPanel ? (
+                            <section className="glass-panel component-list-panel">
+                                <div className="panel-head">
+                                    <h3>Components</h3>
+                                    <button
+                                        type="button"
+                                        className="panel-mini-button"
+                                        onClick={() => setShowComponentsPanel(false)}
+                                    >
+                                        Hide
+                                    </button>
+                                </div>
+                                <div className="component-list-scroll">
                                     {project.components.map((component) => (
                                         <button
                                             key={component.id}
                                             type="button"
+                                            className={`component-list-item ${component.id === selectedComponentId ? 'active' : ''}`}
                                             onClick={() => setSelectedComponentId(component.id)}
-                                            className={`w-full rounded-md border px-3 py-2 text-left text-xs transition-colors ${
-                                                component.id === selectedComponentId
-                                                    ? 'border-cyan-500 bg-cyan-500/10 text-cyan-200'
-                                                    : 'border-slate-700 bg-slate-800/40 text-slate-200 hover:border-slate-500'
-                                            }`}
                                         >
-                                            {component.name}
+                                            {truncate(component.name, 20)}
                                         </button>
                                     ))}
 
                                     {project.components.length === 0 ? (
-                                        <p className="text-xs text-slate-400">
-                                            {editMode
-                                                ? 'Click on the 3D model to add your first component pin.'
-                                                : 'No pins yet. Enable edit mode to add components.'}
-                                        </p>
+                                        <p className="empty-note">No component yet. Click the drone in Edit mode.</p>
                                     ) : null}
                                 </div>
                             </section>
+                        ) : null}
 
-                            {selectedComponent ? (
-                                <section className="space-y-3 border-t border-slate-800 pt-4">
-                                    <div className="flex items-center justify-between">
-                                        <h2 className="text-sm font-semibold">Selected Component</h2>
-                                        <button type="button" onClick={handleDeleteSelectedComponent} className="danger-button">
-                                            Delete
-                                        </button>
-                                    </div>
+                        {showEditorPanel ? (
+                            <section className="glass-panel editor-panel">
+                                <div className="editor-head">
+                                    <h3>Edit Component</h3>
+                                    <button type="button" className="glass-danger" onClick={handleDeleteSelectedComponent}>Delete</button>
+                                </div>
 
-                                    <div>
-                                        <label className="panel-label">Name</label>
+                                <label className="field-label" htmlFor="component-name">Name</label>
+                                <input
+                                    id="component-name"
+                                    type="text"
+                                    className="field-input"
+                                    value={selectedComponent.name}
+                                    onChange={(event) => {
+                                        const value = event.target.value;
+                                        patchSelectedComponent((component) => ({ ...component, name: value }));
+                                    }}
+                                />
+
+                                <label className="field-label" htmlFor="component-description">Description</label>
+                                <textarea
+                                    id="component-description"
+                                    className="field-input field-textarea"
+                                    value={selectedComponent.description}
+                                    onChange={(event) => {
+                                        const value = event.target.value;
+                                        patchSelectedComponent((component) => ({ ...component, description: value }));
+                                    }}
+                                />
+
+                                <label className="field-label">Position (X / Y / Z)</label>
+                                <div className="coords-grid">
+                                    {selectedComponent.position.map((coordinate, index) => (
                                         <input
-                                            type="text"
-                                            value={selectedComponent.name}
+                                            key={index}
+                                            type="number"
+                                            step="0.01"
+                                            className="field-input"
+                                            value={coordinate}
                                             onChange={(event) => {
-                                                const value = event.target.value;
-                                                patchSelectedComponent((component) => ({ ...component, name: value }));
+                                                const numericValue = Number(event.target.value);
+                                                patchSelectedComponent((component) => {
+                                                    const nextPosition = [...component.position];
+                                                    nextPosition[index] = Number.isFinite(numericValue) ? numericValue : 0;
+                                                    return { ...component, position: nextPosition };
+                                                });
                                             }}
-                                            className="panel-input"
                                         />
-                                    </div>
-
-                                    <div>
-                                        <label className="panel-label">Description</label>
-                                        <textarea
-                                            value={selectedComponent.description}
-                                            onChange={(event) => {
-                                                const value = event.target.value;
-                                                patchSelectedComponent((component) => ({ ...component, description: value }));
-                                            }}
-                                            className="panel-input min-h-20 resize-y"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="panel-label">Position (X / Y / Z)</label>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {selectedComponent.position.map((coordinate, index) => (
-                                                <input
-                                                    key={index}
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={coordinate}
-                                                    onChange={(event) => {
-                                                        const numericValue = Number(event.target.value);
-                                                        patchSelectedComponent((component) => {
-                                                            const nextPosition = [...component.position];
-                                                            nextPosition[index] = Number.isFinite(numericValue) ? numericValue : 0;
-                                                            return { ...component, position: nextPosition };
-                                                        });
-                                                    }}
-                                                    className="panel-input"
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div className="flex items-center justify-between">
-                                            <label className="panel-label">Specs</label>
-                                            <button
-                                                type="button"
-                                                className="toolbar-button"
-                                                onClick={() => {
-                                                    patchSelectedComponent((component) => ({
-                                                        ...component,
-                                                        specs: [...component.specs, { key: '', value: '' }]
-                                                    }));
-                                                }}
-                                            >
-                                                Add Spec
-                                            </button>
-                                        </div>
-
-                                        <div className="mt-2 space-y-2">
-                                            {selectedComponent.specs.map((spec, index) => (
-                                                <div key={index} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
-                                                    <input
-                                                        type="text"
-                                                        value={spec.key}
-                                                        onChange={(event) => {
-                                                            const value = event.target.value;
-                                                            patchSelectedComponent((component) => ({
-                                                                ...component,
-                                                                specs: component.specs.map((item, specIndex) =>
-                                                                    specIndex === index ? { ...item, key: value } : item
-                                                                )
-                                                            }));
-                                                        }}
-                                                        placeholder="Key"
-                                                        className="panel-input"
-                                                    />
-                                                    <input
-                                                        type="text"
-                                                        value={spec.value}
-                                                        onChange={(event) => {
-                                                            const value = event.target.value;
-                                                            patchSelectedComponent((component) => ({
-                                                                ...component,
-                                                                specs: component.specs.map((item, specIndex) =>
-                                                                    specIndex === index ? { ...item, value } : item
-                                                                )
-                                                            }));
-                                                        }}
-                                                        placeholder="Value"
-                                                        className="panel-input"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        className="danger-button h-9 px-2"
-                                                        onClick={() => {
-                                                            patchSelectedComponent((component) => ({
-                                                                ...component,
-                                                                specs: component.specs.filter((_, specIndex) => specIndex !== index)
-                                                            }));
-                                                        }}
-                                                    >
-                                                        X
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </section>
-                            ) : (
-                                <section className="border-t border-slate-800 pt-4">
-                                    <p className="text-xs text-slate-400">
-                                        Select a pin from the list or click one in the 3D view to edit its metadata.
-                                    </p>
-                                </section>
-                            )}
-                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        ) : null}
                     </aside>
-                </div>
+                ) : null}
             </main>
+
+            <footer className="status-line">
+                {statusMessage ? <span className="status-ok">{statusMessage}</span> : null}
+                {errorMessage ? <span className="status-error">{errorMessage}</span> : null}
+                {modelError ? <span className="status-error">{modelError}</span> : null}
+            </footer>
         </div>
     );
 }

@@ -1,5 +1,5 @@
-import React, { Suspense, useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
+import React, { Suspense, useEffect, useMemo, useRef } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import {
     ContactShadows,
     Environment,
@@ -10,6 +10,7 @@ import {
     TransformControls,
     useGLTF
 } from '@react-three/drei';
+import { Box3, Color, MathUtils, Sphere, Vector3 } from 'three';
 
 const roundPosition = (point) => [
     Number(point.x.toFixed(4)),
@@ -17,36 +18,27 @@ const roundPosition = (point) => [
     Number(point.z.toFixed(4))
 ];
 
-const PinMesh = ({ component, selected, onSelect }) => {
-    return (
-        <group position={component.position}>
-            <mesh
-                onPointerDown={(event) => {
+const PinHotspot = ({ component, selected, onSelect }) => (
+    <group position={component.position}>
+        <Html center zIndexRange={[100, 0]}>
+            <button
+                type="button"
+                className={`pin-marker ${selected ? 'selected' : ''}`}
+                onClick={(event) => {
                     event.stopPropagation();
                     onSelect(component.id);
                 }}
             >
-                <sphereGeometry args={[selected ? 0.045 : 0.03, 24, 24]} />
-                <meshStandardMaterial
-                    color={selected ? '#f97316' : '#06b6d4'}
-                    emissive={selected ? '#f97316' : '#0891b2'}
-                    emissiveIntensity={selected ? 0.4 : 0.2}
-                />
-            </mesh>
-
-            {selected && (
-                <Html position={[0, 0.12, 0]} center distanceFactor={7}>
-                    <div className="pointer-events-none rounded bg-slate-900/90 border border-cyan-500/40 px-2 py-1 text-[11px] text-white whitespace-nowrap">
-                        {component.name}
-                    </div>
-                </Html>
-            )}
-        </group>
-    );
-};
+                <span className="pin-dot" />
+                {selected ? <span className="pin-label">{component.name}</span> : null}
+            </button>
+        </Html>
+    </group>
+);
 
 const SceneContents = ({
     modelUrl,
+    modelFileName,
     editMode,
     components,
     selectedComponentId,
@@ -56,21 +48,164 @@ const SceneContents = ({
     onMoveComponent,
     onTransformDragging
 }) => {
+    const { camera } = useThree();
+    const controlsRef = useRef(null);
+    const targetCameraPosRef = useRef(new Vector3(-4, 2.5, -4));
+    const targetLookAtRef = useRef(new Vector3(0, 0, 0));
     const { scene } = useGLTF(modelUrl);
 
-    const model = useMemo(() => {
+    const isDefaultModel = modelFileName === 'fpv.glb';
+
+    const modelData = useMemo(() => {
         const clone = scene.clone(true);
+
         clone.traverse((child) => {
-            if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
+            if (!child.isMesh) {
+                return;
+            }
+
+            child.castShadow = true;
+            child.receiveShadow = true;
+
+            if (!child.material) {
+                return;
+            }
+
+            child.material = child.material.clone();
+            const meshName = child.name?.toLowerCase() || '';
+
+            if (meshName.includes('prop')) {
+                child.material.color = new Color('#f58cdd');
+                if ('emissive' in child.material) {
+                    child.material.emissive = new Color('#f58cdd');
+                    child.material.emissiveIntensity = 0.18;
+                }
+                return;
+            }
+
+            if ('color' in child.material && child.material.color) {
+                child.material.color.multiplyScalar(0.66);
             }
         });
-        return clone;
-    }, [scene]);
+
+        const box = new Box3().setFromObject(clone);
+        const center = new Vector3();
+        const sphere = new Sphere();
+
+        if (box.isEmpty()) {
+            return {
+                model: clone,
+                center: new Vector3(0, 0, 0),
+                radius: 1.2,
+                modelScale: 1,
+                floorY: -0.01,
+                shadowScale: 7,
+                shadowFar: 6,
+                fogNear: 6,
+                fogFar: 20,
+                controlSize: 0.65
+            };
+        }
+
+        box.getCenter(center);
+        box.getBoundingSphere(sphere);
+
+        const baseRadius = Math.max(sphere.radius, 0.001);
+        const modelScale = isDefaultModel
+            ? 8
+            : MathUtils.clamp(1.1 / baseRadius, 0.15, 180);
+
+        const scaledCenter = center.clone().multiplyScalar(modelScale);
+        const radius = baseRadius * modelScale;
+
+        return {
+            model: clone,
+            center: scaledCenter,
+            radius,
+            modelScale,
+            floorY: box.min.y * modelScale - 0.01,
+            shadowScale: Math.max(radius * 6.8, 3),
+            shadowFar: Math.max(radius * 5.5, 3),
+            fogNear: Math.max(radius * 4.2, 2),
+            fogFar: Math.max(radius * 23, 14),
+            controlSize: MathUtils.clamp(radius * 0.55, 0.42, 1.7)
+        };
+    }, [isDefaultModel, scene]);
+
+    useEffect(() => {
+        const controls = controlsRef.current;
+        if (!controls) {
+            return;
+        }
+
+        if (isDefaultModel) {
+            camera.position.set(-4, 2.5, -4);
+            camera.near = 0.05;
+            camera.far = 60;
+            camera.updateProjectionMatrix();
+
+            controls.target.set(0, 0, 0);
+            controls.minDistance = 2;
+            controls.maxDistance = 10;
+            controls.update();
+            return;
+        }
+
+        const { center, radius } = modelData;
+        const fov = (camera.fov * Math.PI) / 180;
+        const fitDistance = radius / Math.tan(fov / 2);
+        const distance = MathUtils.clamp(fitDistance * 0.88, 0.35, 16);
+
+        camera.position.set(
+            center.x + distance * 0.9,
+            center.y + distance * 0.6,
+            center.z + distance * 0.92
+        );
+        camera.near = Math.max(distance / 220, 0.01);
+        camera.far = Math.max(distance * 55, 24);
+        camera.updateProjectionMatrix();
+
+        controls.target.copy(center);
+        controls.minDistance = Math.max(radius * 0.4, 0.2);
+        controls.maxDistance = Math.max(radius * 8, 1.4);
+        controls.update();
+    }, [camera, isDefaultModel, modelData, modelUrl]);
 
     const selectedComponent = components.find((component) => component.id === selectedComponentId) || null;
-    const unselectedComponents = components.filter((component) => component.id !== selectedComponentId);
+
+    const defaultFocusMap = useMemo(
+        () => ({
+            'fpv-camera': {
+                position: [0, 0.5, -2],
+                target: [0, 0.15, -0.6]
+            },
+            'motor-1': {
+                position: [-1.8, 1.2, -1.5],
+                target: [-0.75, 0.18, -0.58]
+            },
+            'motor-2': {
+                position: [1.8, 1.2, -1.5],
+                target: [0.74, 0.18, -0.58]
+            },
+            'motor-3': {
+                position: [-1.8, 1.2, 1.5],
+                target: [-0.73, 0.18, 0.57]
+            },
+            'motor-4': {
+                position: [1.8, 1.2, 1.5],
+                target: [0.75, 0.18, 0.58]
+            },
+            fc: {
+                position: [-1.5, 1.5, 0.5],
+                target: [0, 0.16, 0]
+            },
+            battery: {
+                position: [1.5, 1.5, 1.5],
+                target: [0, 0.44, 0]
+            }
+        }),
+        []
+    );
 
     const handleModelPointerDown = (event) => {
         if (!editMode) {
@@ -81,30 +216,73 @@ const SceneContents = ({
         onAddComponent(roundPosition(event.point));
     };
 
+    useEffect(() => {
+        if (!isDefaultModel) {
+            return;
+        }
+
+        if (!selectedComponent) {
+            targetCameraPosRef.current.set(-4, 2.5, -4);
+            targetLookAtRef.current.set(0, 0, 0);
+            return;
+        }
+
+        const mappedTarget = defaultFocusMap[selectedComponent.id];
+        if (mappedTarget) {
+            targetCameraPosRef.current.set(...mappedTarget.position);
+            targetLookAtRef.current.set(...mappedTarget.target);
+            return;
+        }
+
+        const [x = 0, y = 0, z = 0] = selectedComponent.position;
+        targetLookAtRef.current.set(x, y, z);
+        targetCameraPosRef.current.set(x + 1.6, y + 1.1, z + 1.5);
+    }, [defaultFocusMap, isDefaultModel, selectedComponent]);
+
+    useFrame((_, delta) => {
+        if (!isDefaultModel) {
+            return;
+        }
+
+        const controls = controlsRef.current;
+        if (!controls) {
+            return;
+        }
+
+        camera.position.lerp(targetCameraPosRef.current, MathUtils.clamp(delta * 4.2, 0, 1));
+        controls.target.lerp(targetLookAtRef.current, MathUtils.clamp(delta * 4.2, 0, 1));
+        controls.update();
+    });
+
     return (
         <>
-            <color attach="background" args={['#050910']} />
-            <fog attach="fog" args={['#050910', 8, 18]} />
+            <color attach="background" args={['#0b111d']} />
+            <fog attach="fog" args={['#0b111d', modelData.fogNear, modelData.fogFar]} />
 
-            <PerspectiveCamera makeDefault position={[2.6, 2.2, 3.2]} fov={45} />
-            <OrbitControls enabled={orbitEnabled} enablePan={false} minDistance={1.2} maxDistance={9} maxPolarAngle={Math.PI / 1.55} />
+            <PerspectiveCamera makeDefault position={[2.5, 1.9, 3.1]} fov={43} />
+            <OrbitControls
+                ref={controlsRef}
+                enabled={orbitEnabled}
+                enablePan={false}
+                maxPolarAngle={Math.PI / 1.5}
+            />
 
-            <ambientLight intensity={0.6} />
-            <directionalLight position={[4, 8, 3]} intensity={1.5} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
-            <pointLight position={[-4, 3, -2]} intensity={0.6} color="#0ea5e9" />
+            <ambientLight intensity={0.68} />
+            <directionalLight position={[5, 8, 4]} intensity={1.32} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
+            <pointLight position={[-4, 2, -2]} intensity={0.45} color="#95b7ff" />
 
-            <Environment preset="city" blur={0.8} />
-            <Grid args={[16, 16]} cellSize={0.5} cellThickness={0.6} cellColor="#1e293b" sectionSize={2} sectionThickness={1} sectionColor="#334155" fadeDistance={25} fadeStrength={1} infiniteGrid />
+            <Environment preset="city" blur={1} />
+            <Grid args={[18, 18]} cellSize={0.8} cellThickness={0.55} cellColor="#1e2d4a" sectionSize={4} sectionThickness={0.9} sectionColor="#314a75" fadeDistance={30} fadeStrength={1} infiniteGrid />
 
             <group onPointerDown={handleModelPointerDown}>
-                <primitive object={model} />
+                <primitive object={modelData.model} scale={modelData.modelScale} />
             </group>
 
-            {unselectedComponents.map((component) => (
-                <PinMesh
+            {components.map((component) => (
+                <PinHotspot
                     key={component.id}
                     component={component}
-                    selected={false}
+                    selected={component.id === selectedComponentId}
                     onSelect={onSelectComponent}
                 />
             ))}
@@ -112,7 +290,7 @@ const SceneContents = ({
             {selectedComponent && editMode ? (
                 <TransformControls
                     mode="translate"
-                    size={0.7}
+                    size={modelData.controlSize}
                     onDraggingChanged={(event) => onTransformDragging(event.value)}
                     onObjectChange={(event) => {
                         const object = event.target.object;
@@ -127,29 +305,33 @@ const SceneContents = ({
                         ]);
                     }}
                 >
-                    <PinMesh component={selectedComponent} selected onSelect={onSelectComponent} />
+                    <mesh position={selectedComponent.position} visible={false}>
+                        <sphereGeometry args={[0.04, 8, 8]} />
+                        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+                    </mesh>
                 </TransformControls>
             ) : null}
 
-            {selectedComponent && !editMode ? (
-                <PinMesh component={selectedComponent} selected onSelect={onSelectComponent} />
-            ) : null}
-
-            <ContactShadows position={[0, -0.01, 0]} opacity={0.45} scale={12} blur={2.4} far={5} />
+            <ContactShadows
+                position={[modelData.center.x, modelData.floorY, modelData.center.z]}
+                opacity={0.5}
+                scale={modelData.shadowScale}
+                blur={2.2}
+                far={modelData.shadowFar}
+            />
         </>
     );
 };
 
 const LoadingFallback = () => (
     <Html center>
-        <div className="px-3 py-2 rounded bg-slate-900/90 border border-slate-700 text-xs text-slate-200">
-            Loading model...
-        </div>
+        <div className="loading-pill">Loading model...</div>
     </Html>
 );
 
 const ModelViewer = ({
     modelUrl,
+    modelFileName,
     editMode,
     components,
     selectedComponentId,
@@ -160,11 +342,12 @@ const ModelViewer = ({
     onTransformDragging
 }) => {
     return (
-        <div className="h-full w-full rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
+        <div className="viewer-canvas-wrap">
             <Canvas shadows dpr={[1, 1.75]} gl={{ antialias: true }}>
                 <Suspense fallback={<LoadingFallback />}>
                     <SceneContents
                         modelUrl={modelUrl}
+                        modelFileName={modelFileName}
                         editMode={editMode}
                         components={components}
                         selectedComponentId={selectedComponentId}

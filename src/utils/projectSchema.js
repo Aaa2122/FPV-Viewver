@@ -6,9 +6,96 @@ export const DEFAULT_MODEL = {
 };
 
 export const DEFAULT_MODEL_URL = '/fpv.glb';
-export const PROJECT_STORAGE_KEY = 'fpv-viewer-project-v1';
+export const PROJECT_STORAGE_KEY = 'fpv-viewer-project-v2';
 
 export const nowIso = () => new Date().toISOString();
+
+const BASE_COMPONENTS = [
+    {
+        id: 'fpv-camera',
+        name: 'FPV Camera',
+        description: 'Wide-angle digital FPV camera module.',
+        position: [0.0056, 0.152, -0.6008],
+        specs: [
+            { key: 'Resolution', value: '1200TVL' },
+            { key: 'Latency', value: '<10ms' },
+            { key: 'FOV', value: '150deg' }
+        ]
+    },
+    {
+        id: 'motor-1',
+        name: 'Front-Left Motor',
+        description: 'Brushless motor, front-left arm.',
+        position: [-0.7472, 0.1808, -0.5864],
+        specs: [
+            { key: 'KV', value: '1950' },
+            { key: 'Rotation', value: 'CW' },
+            { key: 'Thrust', value: '1.8kg' }
+        ]
+    },
+    {
+        id: 'motor-2',
+        name: 'Front-Right Motor',
+        description: 'Brushless motor, front-right arm.',
+        position: [0.7408, 0.1776, -0.5856],
+        specs: [
+            { key: 'KV', value: '1950' },
+            { key: 'Rotation', value: 'CCW' },
+            { key: 'Thrust', value: '1.8kg' }
+        ]
+    },
+    {
+        id: 'motor-3',
+        name: 'Rear-Left Motor',
+        description: 'Brushless motor, rear-left arm.',
+        position: [-0.7352, 0.1808, 0.5752],
+        specs: [
+            { key: 'KV', value: '1950' },
+            { key: 'Rotation', value: 'CCW' },
+            { key: 'Thrust', value: '1.8kg' }
+        ]
+    },
+    {
+        id: 'motor-4',
+        name: 'Rear-Right Motor',
+        description: 'Brushless motor, rear-right arm.',
+        position: [0.7488, 0.1808, 0.5808],
+        specs: [
+            { key: 'KV', value: '1950' },
+            { key: 'Rotation', value: 'CW' },
+            { key: 'Thrust', value: '1.8kg' }
+        ]
+    },
+    {
+        id: 'fc',
+        name: 'Flight Controller',
+        description: 'Main FC stack in the center frame.',
+        position: [-0.0032, 0.164, -0.0016],
+        specs: [
+            { key: 'CPU', value: 'STM32F722' },
+            { key: 'Gyro', value: 'MPU6000' },
+            { key: 'Loop', value: '8kHz' }
+        ]
+    },
+    {
+        id: 'battery',
+        name: 'Battery 6S',
+        description: 'Top-mounted LiPo battery pack.',
+        position: [0.0088, 0.4376, 0.0312],
+        specs: [
+            { key: 'Capacity', value: '1300mAh' },
+            { key: 'Voltage', value: '22.2V' },
+            { key: 'C-Rating', value: '120C' }
+        ]
+    }
+];
+
+const cloneBaseComponents = () =>
+    BASE_COMPONENTS.map((component) => ({
+        ...component,
+        position: [...component.position],
+        specs: component.specs.map((spec) => ({ ...spec }))
+    }));
 
 export function createEmptyProject() {
     const now = nowIso();
@@ -22,7 +109,7 @@ export function createEmptyProject() {
         model: {
             ...DEFAULT_MODEL
         },
-        components: []
+        components: cloneBaseComponents()
     };
 }
 
