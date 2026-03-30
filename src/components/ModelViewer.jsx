@@ -337,13 +337,19 @@ const ModelViewer = ({
     selectedComponentId,
     orbitEnabled,
     onSelectComponent,
+    onDeselectComponent,
     onAddComponent,
     onMoveComponent,
     onTransformDragging
 }) => {
     return (
         <div className="viewer-canvas-wrap">
-            <Canvas shadows dpr={[1, 1.75]} gl={{ antialias: true }}>
+            <Canvas
+                shadows
+                dpr={[1, 1.75]}
+                gl={{ antialias: true }}
+                onPointerMissed={() => onDeselectComponent?.()}
+            >
                 <Suspense fallback={<LoadingFallback />}>
                     <SceneContents
                         modelUrl={modelUrl}

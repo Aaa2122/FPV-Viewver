@@ -418,6 +418,7 @@ function App() {
                                 selectedComponentId={selectedComponentId}
                                 orbitEnabled={!isTransformDragging}
                                 onSelectComponent={setSelectedComponentId}
+                                onDeselectComponent={() => setSelectedComponentId(null)}
                                 onAddComponent={handleAddComponent}
                                 onMoveComponent={handleMoveComponent}
                                 onTransformDragging={setIsTransformDragging}
