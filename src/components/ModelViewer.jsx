@@ -230,7 +230,20 @@ const SceneContents = ({
         };
 
         controls.addEventListener('start', stopAutoAnimation);
-        return () => controls.removeEventListener('start', stopAutoAnimation);
+        controls.addEventListener('change', () => {
+            if (!isCameraAutoAnimatingRef.current) return;
+        });
+
+        const canvas = controls.domElement;
+        const onWheel = () => { isCameraAutoAnimatingRef.current = false; };
+        if (canvas) {
+            canvas.addEventListener('wheel', onWheel, { passive: true });
+        }
+
+        return () => {
+            controls.removeEventListener('start', stopAutoAnimation);
+            if (canvas) canvas.removeEventListener('wheel', onWheel);
+        };
     }, []);
 
     const selectedComponent = components.find((component) => component.id === selectedComponentId) || null;
