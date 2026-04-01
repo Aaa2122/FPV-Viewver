@@ -455,6 +455,13 @@ body {
   cursor: pointer;
   position: relative;
   padding: 0;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.viewer-shell:hover .pin-marker,
+.pin-marker.selected {
+  opacity: 1;
 }
 
 .pin-marker .pin-dot {
@@ -486,6 +493,16 @@ body {
   padding: 0.28rem 0.52rem;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+}
+
+.connector-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  overflow: visible;
 }
 
 .loading-pill {

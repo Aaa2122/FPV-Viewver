@@ -1,71 +1,51 @@
-# FPV 3D Model Pin Editor
+# FPV Viewer
 
-A web app to upload a drone 3D model, place component pins directly on the model, and display technical info when pins are clicked.
+FPV Viewer permet de presenter un drone en 3D, d ajouter des points interactifs sur les composants, puis d afficher des fiches d informations claires au clic.
 
-## Core Features
+## Apercu
 
-- Upload and view `.glb` / `.gltf` models
-- Edit mode:
-  - Click model surface to create pins
-  - Drag selected pin in 3D (TransformControls)
-  - Edit component name, description, specs, and XYZ coordinates
-- Viewer mode:
-  - Click a pin to open its info card
-- Local persistence:
-  - Autosave project in browser localStorage
-  - Import / export project JSON
+![Vue generale de l application](./docs/screenshots/overview.png)
 
-## Tech Stack
+![Exemple de fiche composant en mode vue](./docs/screenshots/view-component-card.png)
 
-- React + Vite
-- Three.js + React Three Fiber + Drei
-- Tailwind CSS
+![Mode edition avec panneau composants et edition](./docs/screenshots/edit-mode.png)
 
-## Run
+## Ce Que Vous Pouvez Faire
+
+- Charger un modele drone en `.glb` ou `.gltf`
+- Basculer entre `Edit` et `View`
+- Ajouter des points sur les composants du modele
+- Deplacer un point en 3D pour un placement precis
+- Renseigner nom, description et specs de chaque composant
+- Ouvrir une fiche composant blanche au clic
+- Cliquer dans le vide pour deselectionner
+- Afficher ou masquer le panneau `Components`
+- Sauvegarder automatiquement le projet dans le navigateur
+- Exporter et importer un projet complet en JSON
+
+## Workflow Recommande
+
+1. Chargez votre modele avec `Upload Model`.
+2. Passez en `Edit` pour placer et ajuster les points.
+3. Completez les informations des composants.
+4. Passez en `View` pour tester l experience utilisateur finale.
+5. Exportez le projet avec `Export Project`.
+
+## Upload / Import / Export
+
+- `Upload Model`: charge le fichier 3D (`.glb` / `.gltf`)
+- `Import Project`: recharge un projet JSON exporte depuis l app
+- `Export Project`: telecharge le projet courant (points + metadata)
+
+Si un projet importe reference un modele non charge, les donnees sont conservees et l app vous demandera de re-uploader le modele correspondant.
+
+## Demarrage Rapide
 
 ```bash
 npm install
 npm run dev
 ```
 
-Build production:
+## Note Technique (Courte)
 
-```bash
-npm run build
-npm run preview
-```
-
-## Project JSON Schema (v1)
-
-```json
-{
-  "version": 1,
-  "meta": {
-    "name": "My Drone Project",
-    "createdAt": "2026-03-28T12:00:00.000Z",
-    "updatedAt": "2026-03-28T12:10:00.000Z"
-  },
-  "model": {
-    "fileName": "my-drone.glb",
-    "mimeType": "model/gltf-binary"
-  },
-  "components": [
-    {
-      "id": "component-1",
-      "name": "Flight Controller",
-      "description": "Main FC board",
-      "specs": [
-        { "key": "MCU", "value": "STM32F722" },
-        { "key": "Gyro", "value": "MPU6000" }
-      ],
-      "position": [0.0, 0.15, 0.02]
-    }
-  ]
-}
-```
-
-## Notes
-
-- Imported JSON restores metadata and pins.
-- If JSON references a custom model file not currently uploaded, the app loads the default model and asks for re-upload.
-- `.gltf` support assumes self-contained/resolvable assets.
+Stack: React + Vite + Three.js (React Three Fiber / Drei). Les donnees projet sont stockees localement dans le navigateur et transportables via JSON.

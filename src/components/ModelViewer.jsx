@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useMemo, useRef } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import {
     ContactShadows,
@@ -17,6 +17,33 @@ const roundPosition = (point) => [
     Number(point.y.toFixed(4)),
     Number(point.z.toFixed(4))
 ];
+
+const ScreenPositionTracker = ({ position, onChange }) => {
+    const { camera, size } = useThree();
+    const vecRef = useRef(new Vector3());
+    const prevRef = useRef(null);
+
+    useFrame(() => {
+        if (!position) {
+            if (prevRef.current) {
+                prevRef.current = null;
+                onChange(null);
+            }
+            return;
+        }
+        vecRef.current.set(position[0], position[1], position[2]);
+        vecRef.current.project(camera);
+        const x = (vecRef.current.x * 0.5 + 0.5) * size.width;
+        const y = (-vecRef.current.y * 0.5 + 0.5) * size.height;
+        const prev = prevRef.current;
+        if (!prev || Math.abs(x - prev.x) > 0.5 || Math.abs(y - prev.y) > 0.5) {
+            prevRef.current = { x, y };
+            onChange({ x, y });
+        }
+    });
+
+    return null;
+};
 
 const PinHotspot = ({ component, selected, onSelect }) => (
     <group position={component.position}>
@@ -46,15 +73,19 @@ const SceneContents = ({
     onSelectComponent,
     onAddComponent,
     onMoveComponent,
-    onTransformDragging
+    onTransformDragging,
+    onPinScreenPosition
 }) => {
     const { camera } = useThree();
     const controlsRef = useRef(null);
     const targetCameraPosRef = useRef(new Vector3(-4, 2.5, -4));
     const targetLookAtRef = useRef(new Vector3(0, 0, 0));
+    const isCameraAutoAnimatingRef = useRef(false);
+    const isTransformInteractingRef = useRef(false);
     const { scene } = useGLTF(modelUrl);
 
     const isDefaultModel = modelFileName === 'fpv.glb';
+    const shouldAutoFocusInView = isDefaultModel && !editMode;
 
     const modelData = useMemo(() => {
         const clone = scene.clone(true);
@@ -148,6 +179,9 @@ const SceneContents = ({
             controls.minDistance = 2;
             controls.maxDistance = 10;
             controls.update();
+            targetCameraPosRef.current.set(-4, 2.5, -4);
+            targetLookAtRef.current.set(0, 0, 0);
+            isCameraAutoAnimatingRef.current = false;
             return;
         }
 
@@ -170,6 +204,15 @@ const SceneContents = ({
         controls.maxDistance = Math.max(radius * 8, 1.4);
         controls.update();
     }, [camera, isDefaultModel, modelData, modelUrl]);
+
+    useEffect(() => {
+        const controls = controlsRef.current;
+        if (!controls) {
+            return;
+        }
+
+        controls.enabled = orbitEnabled && !isTransformInteractingRef.current;
+    }, [orbitEnabled]);
 
     const selectedComponent = components.find((component) => component.id === selectedComponentId) || null;
 
@@ -221,9 +264,15 @@ const SceneContents = ({
             return;
         }
 
+        if (!shouldAutoFocusInView) {
+            isCameraAutoAnimatingRef.current = false;
+            return;
+        }
+
         if (!selectedComponent) {
             targetCameraPosRef.current.set(-4, 2.5, -4);
             targetLookAtRef.current.set(0, 0, 0);
+            isCameraAutoAnimatingRef.current = true;
             return;
         }
 
@@ -231,16 +280,18 @@ const SceneContents = ({
         if (mappedTarget) {
             targetCameraPosRef.current.set(...mappedTarget.position);
             targetLookAtRef.current.set(...mappedTarget.target);
+            isCameraAutoAnimatingRef.current = true;
             return;
         }
 
         const [x = 0, y = 0, z = 0] = selectedComponent.position;
         targetLookAtRef.current.set(x, y, z);
         targetCameraPosRef.current.set(x + 1.6, y + 1.1, z + 1.5);
-    }, [defaultFocusMap, isDefaultModel, selectedComponent]);
+        isCameraAutoAnimatingRef.current = true;
+    }, [defaultFocusMap, isDefaultModel, selectedComponent, shouldAutoFocusInView]);
 
     useFrame((_, delta) => {
-        if (!isDefaultModel) {
+        if (!shouldAutoFocusInView || !isCameraAutoAnimatingRef.current) {
             return;
         }
 
@@ -252,6 +303,16 @@ const SceneContents = ({
         camera.position.lerp(targetCameraPosRef.current, MathUtils.clamp(delta * 4.2, 0, 1));
         controls.target.lerp(targetLookAtRef.current, MathUtils.clamp(delta * 4.2, 0, 1));
         controls.update();
+
+        const cameraSettled = camera.position.distanceToSquared(targetCameraPosRef.current) < 0.0002;
+        const targetSettled = controls.target.distanceToSquared(targetLookAtRef.current) < 0.0002;
+
+        if (cameraSettled && targetSettled) {
+            camera.position.copy(targetCameraPosRef.current);
+            controls.target.copy(targetLookAtRef.current);
+            controls.update();
+            isCameraAutoAnimatingRef.current = false;
+        }
     });
 
     return (
@@ -291,7 +352,27 @@ const SceneContents = ({
                 <TransformControls
                     mode="translate"
                     size={modelData.controlSize}
-                    onDraggingChanged={(event) => onTransformDragging(event.value)}
+                    onMouseDown={() => {
+                        isTransformInteractingRef.current = true;
+                        if (controlsRef.current) {
+                            controlsRef.current.enabled = false;
+                        }
+                        onTransformDragging(true);
+                    }}
+                    onMouseUp={() => {
+                        isTransformInteractingRef.current = false;
+                        if (controlsRef.current) {
+                            controlsRef.current.enabled = orbitEnabled;
+                        }
+                        onTransformDragging(false);
+                    }}
+                    onDraggingChanged={(event) => {
+                        isTransformInteractingRef.current = event.value;
+                        if (controlsRef.current) {
+                            controlsRef.current.enabled = orbitEnabled && !event.value;
+                        }
+                        onTransformDragging(event.value);
+                    }}
                     onObjectChange={(event) => {
                         const object = event.target.object;
                         if (!object) {
@@ -319,6 +400,11 @@ const SceneContents = ({
                 blur={2.2}
                 far={modelData.shadowFar}
             />
+
+            <ScreenPositionTracker
+                position={selectedComponent?.position || null}
+                onChange={onPinScreenPosition}
+            />
         </>
     );
 };
@@ -340,7 +426,8 @@ const ModelViewer = ({
     onDeselectComponent,
     onAddComponent,
     onMoveComponent,
-    onTransformDragging
+    onTransformDragging,
+    onPinScreenPosition
 }) => {
     return (
         <div className="viewer-canvas-wrap">
@@ -362,6 +449,7 @@ const ModelViewer = ({
                         onAddComponent={onAddComponent}
                         onMoveComponent={onMoveComponent}
                         onTransformDragging={onTransformDragging}
+                        onPinScreenPosition={onPinScreenPosition}
                     />
                 </Suspense>
             </Canvas>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ModelErrorBoundary from './components/ModelErrorBoundary';
 import ModelViewer from './components/ModelViewer';
 import {
@@ -66,9 +66,16 @@ function App() {
     const [modelError, setModelError] = useState('');
     const [modelUrl, setModelUrl] = useState(DEFAULT_MODEL_URL);
     const [isTransformDragging, setIsTransformDragging] = useState(false);
+    const [pinScreenPos, setPinScreenPos] = useState(null);
 
     const uploadedModelUrlRef = useRef(null);
     const uploadedModelNameRef = useRef('');
+    const viewerShellRef = useRef(null);
+    const cardRef = useRef(null);
+
+    const handlePinScreenPosition = useCallback((pos) => {
+        setPinScreenPos(pos);
+    }, []);
 
     const selectedComponent = useMemo(
         () => project.components.find((component) => component.id === selectedComponentId) || null,
@@ -408,7 +415,7 @@ function App() {
                 <div className="stage-grid-overlay" aria-hidden />
 
                 <section className="viewer-column">
-                    <div className="viewer-shell">
+                    <div className="viewer-shell" ref={viewerShellRef}>
                         <ModelErrorBoundary resetKey={modelUrl} onError={setModelError}>
                             <ModelViewer
                                 modelUrl={modelUrl}
@@ -422,11 +429,12 @@ function App() {
                                 onAddComponent={handleAddComponent}
                                 onMoveComponent={handleMoveComponent}
                                 onTransformDragging={setIsTransformDragging}
+                                onPinScreenPosition={handlePinScreenPosition}
                             />
                         </ModelErrorBoundary>
 
                         {selectedComponent ? (
-                            <article className="component-white-sheet">
+                            <article className="component-white-sheet" ref={cardRef}>
                                 <h2>{selectedComponent.name.toUpperCase()}</h2>
                                 <p>{selectedComponent.description || 'No description provided for this component.'}</p>
 
@@ -456,6 +464,30 @@ function App() {
                                 </div>
                             </article>
                         ) : null}
+
+                        {selectedComponent && pinScreenPos && cardRef.current && viewerShellRef.current ? (() => {
+                            const shellRect = viewerShellRef.current.getBoundingClientRect();
+                            const cardRect = cardRef.current.getBoundingClientRect();
+                            const startX = cardRect.right - shellRect.left;
+                            const startY = cardRect.top + cardRect.height / 2 - shellRect.top;
+                            const endX = pinScreenPos.x;
+                            const endY = pinScreenPos.y;
+                            const dx = endX - startX;
+                            const cpX = startX + dx * 0.5;
+                            return (
+                                <svg className="connector-svg">
+                                    <path
+                                        d={`M ${startX} ${startY} C ${cpX} ${startY} ${cpX} ${endY} ${endX} ${endY}`}
+                                        stroke="rgba(255,255,255,0.25)"
+                                        strokeWidth="1.5"
+                                        fill="none"
+                                        strokeDasharray="6 4"
+                                    />
+                                    <circle cx={endX} cy={endY} r="4" fill="rgba(255,255,255,0.4)" />
+                                    <circle cx={endX} cy={endY} r="2" fill="rgba(255,255,255,0.8)" />
+                                </svg>
+                            );
+                        })() : null}
 
                     </div>
                 </section>
