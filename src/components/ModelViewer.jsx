@@ -45,19 +45,19 @@ const ScreenPositionTracker = ({ position, onChange }) => {
     return null;
 };
 
-const PinHotspot = ({ component, selected, onSelect }) => (
+const PinHotspot = ({ component, selected, onSelect, editMode }) => (
     <group position={component.position}>
-        <Html center zIndexRange={[100, 0]}>
+        <Html center zIndexRange={[100, 0]} style={editMode && selected ? { pointerEvents: 'none' } : undefined}>
             <button
                 type="button"
-                className={`pin-marker ${selected ? 'selected' : ''}`}
+                className={`pin-marker ${selected ? 'selected' : ''} ${editMode ? 'edit-mode' : ''}`}
                 onClick={(event) => {
                     event.stopPropagation();
                     onSelect(component.id);
                 }}
             >
                 <span className="pin-dot" />
-                {selected ? <span className="pin-label">{component.name}</span> : null}
+                <span className="pin-label">{component.name}</span>
             </button>
         </Html>
     </group>
@@ -78,6 +78,7 @@ const SceneContents = ({
 }) => {
     const { camera } = useThree();
     const controlsRef = useRef(null);
+    const dragTargetRef = useRef(null);
     const targetCameraPosRef = useRef(new Vector3(-4, 2.5, -4));
     const targetLookAtRef = useRef(new Vector3(0, 0, 0));
     const isCameraAutoAnimatingRef = useRef(false);
@@ -230,6 +231,12 @@ const SceneContents = ({
 
     const selectedComponent = components.find((component) => component.id === selectedComponentId) || null;
 
+    useEffect(() => {
+        if (dragTargetRef.current && selectedComponent) {
+            dragTargetRef.current.position.set(...selectedComponent.position);
+        }
+    }, [selectedComponent?.id]);
+
     const defaultFocusMap = useMemo(
         () => ({
             'fpv-camera': {
@@ -353,22 +360,24 @@ const SceneContents = ({
                 <primitive object={modelData.model} scale={modelData.modelScale} />
             </group>
 
-            {components.map((component) => {
-                if (editMode && component.id === selectedComponentId) {
-                    return null;
-                }
-                return (
-                    <PinHotspot
-                        key={component.id}
-                        component={component}
-                        selected={component.id === selectedComponentId}
-                        onSelect={onSelectComponent}
-                    />
-                );
-            })}
+            {components.map((component) => (
+                <PinHotspot
+                    key={component.id}
+                    component={component}
+                    selected={component.id === selectedComponentId}
+                    onSelect={onSelectComponent}
+                    editMode={editMode}
+                />
+            ))}
+
+            <mesh ref={dragTargetRef} visible={false}>
+                <sphereGeometry args={[0.15, 8, 8]} />
+                <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
 
             {selectedComponent && editMode ? (
                 <TransformControls
+                    object={dragTargetRef}
                     mode="translate"
                     size={modelData.controlSize}
                     onMouseDown={() => {
@@ -392,8 +401,8 @@ const SceneContents = ({
                         }
                         onTransformDragging(event.value);
                     }}
-                    onObjectChange={(event) => {
-                        const object = event.target.object;
+                    onObjectChange={() => {
+                        const object = dragTargetRef.current;
                         if (!object) {
                             return;
                         }
@@ -404,12 +413,7 @@ const SceneContents = ({
                             Number(object.position.z.toFixed(4))
                         ]);
                     }}
-                >
-                    <mesh position={selectedComponent.position} visible={false}>
-                        <sphereGeometry args={[0.18, 12, 12]} />
-                        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-                    </mesh>
-                </TransformControls>
+                />
             ) : null}
 
             <ContactShadows

@@ -474,6 +474,29 @@ body {
   opacity: 1;
 }
 
+.pin-marker.edit-mode {
+  opacity: 1;
+  width: 16px;
+  height: 16px;
+  border-color: rgba(150, 200, 255, 0.9);
+  background: rgba(80, 140, 255, 0.2);
+  box-shadow: 0 0 0 3px rgba(100, 160, 255, 0.15), 0 0 8px rgba(80, 140, 255, 0.3);
+}
+
+.pin-marker.edit-mode .pin-dot {
+  width: 5px;
+  height: 5px;
+  background: rgba(150, 200, 255, 0.95);
+}
+
+.pin-marker.edit-mode.selected {
+  width: 20px;
+  height: 20px;
+  border-color: #7cb8ff;
+  background: rgba(80, 140, 255, 0.35);
+  box-shadow: 0 0 0 4px rgba(100, 160, 255, 0.2), 0 0 14px rgba(80, 140, 255, 0.4);
+}
+
 .pin-marker .pin-dot {
   width: 3px;
   height: 3px;
@@ -503,6 +526,12 @@ body {
   padding: 0.28rem 0.52rem;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  display: none;
+}
+
+.pin-marker.selected .pin-label,
+.pin-marker.edit-mode .pin-label {
+  display: block;
 }
 
 .connector-svg {
