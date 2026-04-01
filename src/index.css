@@ -204,28 +204,37 @@ body {
 .component-white-sheet {
   position: absolute;
   left: 1rem;
-  top: 1rem;
-  width: min(340px, 45vw);
-  max-height: min(78vh, 560px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: max-content;
+  min-width: 180px;
+  max-width: min(300px, 38vw);
+  max-height: min(70vh, 480px);
   overflow-y: auto;
-  background: rgba(255, 255, 255, 0.94);
-  color: #1f2937;
-  border-radius: 1.1rem;
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  padding: 0.92rem 0.95rem;
-  box-shadow: 0 18px 36px rgba(2, 8, 20, 0.42);
+  background: rgba(10, 16, 28, 0.82);
+  color: #e4ecff;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(180, 200, 240, 0.18);
+  padding: 0.75rem 0.85rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 12;
+  pointer-events: auto;
 }
 
 .component-white-sheet h2 {
   margin: 0;
-  font-size: 1.02rem;
+  font-size: 0.88rem;
+  font-weight: 600;
   letter-spacing: 0.04em;
+  color: #f0f5ff;
 }
 
 .component-white-sheet p {
-  margin: 0.5rem 0 0;
-  color: #4b5563;
-  font-size: 0.82rem;
+  margin: 0.35rem 0 0;
+  color: rgba(200, 215, 245, 0.72);
+  font-size: 0.74rem;
   line-height: 1.36;
 }
 
@@ -240,24 +249,25 @@ body {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 0.42rem;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.12);
+  border-bottom: 1px solid rgba(150, 180, 230, 0.1);
   padding-bottom: 0.22rem;
 }
 
 .sheet-icon {
-  color: #6b7280;
-  font-size: 0.68rem;
+  color: rgba(160, 180, 220, 0.5);
+  font-size: 0.62rem;
 }
 
 .sheet-key {
   text-transform: uppercase;
   letter-spacing: 0.045em;
-  color: #6b7280;
-  font-size: 0.66rem;
+  color: rgba(170, 190, 230, 0.6);
+  font-size: 0.62rem;
 }
 
 .sheet-spec-row strong {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
+  color: #dce6ff;
 }
 
 .sheet-meters {
@@ -267,17 +277,17 @@ body {
 }
 
 .sheet-meters span {
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #6b7280;
+  color: rgba(170, 190, 230, 0.6);
 }
 
 .meter-track {
-  margin-top: 0.22rem;
-  height: 0.35rem;
+  margin-top: 0.18rem;
+  height: 0.28rem;
   border-radius: 999px;
-  background: rgba(100, 116, 139, 0.28);
+  background: rgba(120, 150, 200, 0.15);
   overflow: hidden;
 }
 
@@ -558,9 +568,8 @@ body {
   }
 
   .component-white-sheet {
-    width: calc(100% - 1.6rem);
-    max-width: none;
-    max-height: 42vh;
+    max-width: min(260px, 70vw);
+    max-height: 36vh;
   }
 
   .component-list-panel {

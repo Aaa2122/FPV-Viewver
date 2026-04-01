@@ -433,58 +433,74 @@ function App() {
                             />
                         </ModelErrorBoundary>
 
-                        {selectedComponent ? (
-                            <article className="component-white-sheet" ref={cardRef}>
-                                <h2>{selectedComponent.name.toUpperCase()}</h2>
-                                <p>{selectedComponent.description || 'No description provided for this component.'}</p>
+                        {selectedComponent && !editMode ? (() => {
+                            const cardStyle = {};
+                            if (pinScreenPos && viewerShellRef.current) {
+                                const shellW = viewerShellRef.current.clientWidth;
+                                const onRight = pinScreenPos.x < shellW * 0.5;
+                                cardStyle.left = `${pinScreenPos.x}px`;
+                                cardStyle.top = `${pinScreenPos.y}px`;
+                                cardStyle.transform = onRight
+                                    ? 'translate(40px, -50%)'
+                                    : 'translate(calc(-100% - 40px), -50%)';
+                            }
+                            return (
+                                <article className="component-white-sheet" ref={cardRef} style={cardStyle}>
+                                    <h2>{selectedComponent.name.toUpperCase()}</h2>
+                                    {selectedComponent.description ? (
+                                        <p>{selectedComponent.description}</p>
+                                    ) : null}
 
-                                <div className="sheet-specs">
-                                    {detailSpecs.map((spec, index) => (
-                                        <div key={`${spec.key}-${index}`} className="sheet-spec-row">
-                                            <span className="sheet-icon" aria-hidden>?</span>
-                                            <span className="sheet-key">{spec.key || `Spec ${index + 1}`}</span>
-                                            <strong>{spec.value || '-'}</strong>
+                                    <div className="sheet-specs">
+                                        {detailSpecs.map((spec, index) => (
+                                            <div key={`${spec.key}-${index}`} className="sheet-spec-row">
+                                                <span className="sheet-icon" aria-hidden>?</span>
+                                                <span className="sheet-key">{spec.key || `Spec ${index + 1}`}</span>
+                                                <strong>{spec.value || '-'}</strong>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="sheet-meters">
+                                        <div>
+                                            <span>Efficiency</span>
+                                            <div className="meter-track">
+                                                <span className="meter-fill" style={{ width: `${metrics.efficiency}%` }} />
+                                            </div>
                                         </div>
-                                    ))}
-                                </div>
-
-                                <div className="sheet-meters">
-                                    <div>
-                                        <span>Efficiency</span>
-                                        <div className="meter-track">
-                                            <span className="meter-fill" style={{ width: `${metrics.efficiency}%` }} />
+                                        <div>
+                                            <span>Thrust</span>
+                                            <div className="meter-track">
+                                                <span className="meter-fill" style={{ width: `${metrics.thrust}%` }} />
+                                            </div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <span>Thrust</span>
-                                        <div className="meter-track">
-                                            <span className="meter-fill" style={{ width: `${metrics.thrust}%` }} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </article>
-                        ) : null}
+                                </article>
+                            );
+                        })() : null}
 
-                        {selectedComponent && pinScreenPos && cardRef.current && viewerShellRef.current ? (() => {
+                        {selectedComponent && !editMode && pinScreenPos && cardRef.current && viewerShellRef.current ? (() => {
                             const shellRect = viewerShellRef.current.getBoundingClientRect();
                             const cardRect = cardRef.current.getBoundingClientRect();
-                            const startX = cardRect.right - shellRect.left;
+                            const startX = pinScreenPos.x < shellRect.width * 0.5
+                                ? cardRect.left - shellRect.left
+                                : cardRect.right - shellRect.left;
                             const startY = cardRect.top + cardRect.height / 2 - shellRect.top;
                             const endX = pinScreenPos.x;
                             const endY = pinScreenPos.y;
                             const dx = endX - startX;
-                            const cpX = startX + dx * 0.5;
+                            const cpX = startX + dx * 0.45;
                             return (
                                 <svg className="connector-svg">
                                     <path
                                         d={`M ${startX} ${startY} C ${cpX} ${startY} ${cpX} ${endY} ${endX} ${endY}`}
-                                        stroke="rgba(255,255,255,0.25)"
-                                        strokeWidth="1.5"
+                                        stroke="rgba(255,255,255,0.2)"
+                                        strokeWidth="1.2"
                                         fill="none"
-                                        strokeDasharray="6 4"
+                                        strokeDasharray="5 4"
                                     />
-                                    <circle cx={endX} cy={endY} r="4" fill="rgba(255,255,255,0.4)" />
-                                    <circle cx={endX} cy={endY} r="2" fill="rgba(255,255,255,0.8)" />
+                                    <circle cx={endX} cy={endY} r="3.5" fill="rgba(255,255,255,0.3)" />
+                                    <circle cx={endX} cy={endY} r="1.5" fill="rgba(255,255,255,0.7)" />
                                 </svg>
                             );
                         })() : null}

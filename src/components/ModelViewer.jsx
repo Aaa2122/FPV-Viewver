@@ -214,6 +214,20 @@ const SceneContents = ({
         controls.enabled = orbitEnabled && !isTransformInteractingRef.current;
     }, [orbitEnabled]);
 
+    useEffect(() => {
+        const controls = controlsRef.current;
+        if (!controls) {
+            return;
+        }
+
+        const stopAutoAnimation = () => {
+            isCameraAutoAnimatingRef.current = false;
+        };
+
+        controls.addEventListener('start', stopAutoAnimation);
+        return () => controls.removeEventListener('start', stopAutoAnimation);
+    }, []);
+
     const selectedComponent = components.find((component) => component.id === selectedComponentId) || null;
 
     const defaultFocusMap = useMemo(
@@ -339,14 +353,19 @@ const SceneContents = ({
                 <primitive object={modelData.model} scale={modelData.modelScale} />
             </group>
 
-            {components.map((component) => (
-                <PinHotspot
-                    key={component.id}
-                    component={component}
-                    selected={component.id === selectedComponentId}
-                    onSelect={onSelectComponent}
-                />
-            ))}
+            {components.map((component) => {
+                if (editMode && component.id === selectedComponentId) {
+                    return null;
+                }
+                return (
+                    <PinHotspot
+                        key={component.id}
+                        component={component}
+                        selected={component.id === selectedComponentId}
+                        onSelect={onSelectComponent}
+                    />
+                );
+            })}
 
             {selectedComponent && editMode ? (
                 <TransformControls
@@ -387,7 +406,7 @@ const SceneContents = ({
                     }}
                 >
                     <mesh position={selectedComponent.position} visible={false}>
-                        <sphereGeometry args={[0.04, 8, 8]} />
+                        <sphereGeometry args={[0.18, 12, 12]} />
                         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
                     </mesh>
                 </TransformControls>
