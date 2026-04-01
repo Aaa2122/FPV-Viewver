@@ -529,9 +529,13 @@ body {
   display: none;
 }
 
-.pin-marker.selected .pin-label,
+.pin-marker:hover .pin-label,
 .pin-marker.edit-mode .pin-label {
   display: block;
+}
+
+.pin-marker.selected .pin-label {
+  display: none;
 }
 
 .connector-svg {
