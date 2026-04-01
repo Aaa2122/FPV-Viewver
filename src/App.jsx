@@ -540,30 +540,39 @@ function App() {
                                     : 'translate(calc(-100% - 40px), -50%)';
                             }
                             return (
-                                <article className="component-white-sheet" ref={cardRef} style={cardStyle}>
-                                    <h2>{selectedComponent.name.toUpperCase()}</h2>
+                                <article
+                                    key={selectedComponent.id}
+                                    className="component-card"
+                                    ref={cardRef}
+                                    style={cardStyle}
+                                >
+                                    <div className="card-header">
+                                        <h2>{selectedComponent.name.toUpperCase()}</h2>
+                                    </div>
                                     {selectedComponent.description ? (
-                                        <p>{selectedComponent.description}</p>
+                                        <p className="card-desc">{selectedComponent.description}</p>
                                     ) : null}
 
-                                    <div className="sheet-specs">
-                                        {detailSpecs.map((spec, index) => (
-                                            <div key={`${spec.key}-${index}`} className="sheet-spec-row">
-                                                <span className="sheet-icon" aria-hidden>?</span>
-                                                <span className="sheet-key">{spec.key || `Spec ${index + 1}`}</span>
-                                                <strong>{spec.value || '-'}</strong>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    {detailSpecs.length > 0 ? (
+                                        <div className="card-specs">
+                                            {detailSpecs.map((spec, index) => (
+                                                <div key={`${spec.key}-${index}`} className="card-spec-row">
+                                                    <span className="card-spec-key">{spec.key || `Spec ${index + 1}`}</span>
+                                                    <span className="card-spec-dots" />
+                                                    <strong className="card-spec-val">{spec.value || '-'}</strong>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : null}
 
-                                    <div className="sheet-meters">
-                                        <div>
+                                    <div className="card-meters">
+                                        <div className="card-meter">
                                             <span>Efficiency</span>
                                             <div className="meter-track">
                                                 <span className="meter-fill" style={{ width: `${metrics.efficiency}%` }} />
                                             </div>
                                         </div>
-                                        <div>
+                                        <div className="card-meter">
                                             <span>Thrust</span>
                                             <div className="meter-track">
                                                 <span className="meter-fill" style={{ width: `${metrics.thrust}%` }} />
