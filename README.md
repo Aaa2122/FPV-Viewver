@@ -1,6 +1,6 @@
 # FPV Viewer
 
-FPV Viewer permet de presenter un drone en 3D, d ajouter des points interactifs sur les composants, puis d afficher des fiches d informations claires au clic.
+FPV Viewer permet de presenter un drone en 3D, d'ajouter des points interactifs sur les composants, puis d'afficher des fiches d'informations claires au clic.
 
 ## Apercu
 
@@ -46,6 +46,6 @@ npm install
 npm run dev
 ```
 
-## Note Technique (Courte)
+## Note Technique 
 
 Stack: React + Vite + Three.js (React Three Fiber / Drei). Les donnees projet sont stockees localement dans le navigateur et transportables via JSON.
