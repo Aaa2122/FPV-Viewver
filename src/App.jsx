@@ -67,11 +67,13 @@ function App() {
     const [modelUrl, setModelUrl] = useState(DEFAULT_MODEL_URL);
     const [isTransformDragging, setIsTransformDragging] = useState(false);
     const [pinScreenPos, setPinScreenPos] = useState(null);
+    const [editTool, setEditTool] = useState('select');
 
     const uploadedModelUrlRef = useRef(null);
     const uploadedModelNameRef = useRef('');
     const viewerShellRef = useRef(null);
     const cardRef = useRef(null);
+    const clipboardRef = useRef(null);
 
     const handlePinScreenPosition = useCallback((pos) => {
         setPinScreenPos(pos);
@@ -160,6 +162,70 @@ function App() {
                 URL.revokeObjectURL(uploadedModelUrlRef.current);
             }
         };
+    }, []);
+
+    const actionsRef = useRef({});
+    actionsRef.current.deleteSelected = () => {
+        if (!selectedComponentId) return;
+        setProject((prev) => ({
+            ...prev,
+            meta: { ...prev.meta, updatedAt: nowIso() },
+            components: prev.components.filter((c) => c.id !== selectedComponentId)
+        }));
+        setSelectedComponentId(null);
+        setStatusMessage('Pin deleted.');
+    };
+    actionsRef.current.copy = () => {
+        if (!selectedComponent) return;
+        clipboardRef.current = { ...selectedComponent, specs: [...selectedComponent.specs] };
+        setStatusMessage('Component copied.');
+    };
+    actionsRef.current.paste = () => {
+        const src = clipboardRef.current;
+        if (!src) return;
+        const comp = createNewComponent(src.position.map((v) => v + 0.15), 0);
+        comp.name = `${src.name} (copy)`;
+        comp.description = src.description;
+        comp.specs = [...src.specs];
+        setProject((prev) => ({
+            ...prev,
+            meta: { ...prev.meta, updatedAt: nowIso() },
+            components: [...prev.components, comp]
+        }));
+        setSelectedComponentId(comp.id);
+        setStatusMessage('Component pasted.');
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                actionsRef.current.deleteSelected();
+                return;
+            }
+            if (e.key === 'Escape') {
+                setSelectedComponentId(null);
+                setEditTool('select');
+                return;
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+                actionsRef.current.copy();
+                e.preventDefault();
+                return;
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+                actionsRef.current.paste();
+                e.preventDefault();
+                return;
+            }
+            if (e.key === 'v' || e.key === 'V') { setEditTool('select'); return; }
+            if (e.key === 'a' || e.key === 'A') { setEditTool('add'); return; }
+            if (e.key === 'h' || e.key === 'H') { setEditTool('hand'); return; }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
     const updateProject = (updater) => {
@@ -252,19 +318,7 @@ function App() {
         }));
     };
 
-    const handleDeleteSelectedComponent = () => {
-        if (!selectedComponentId) {
-            return;
-        }
-
-        updateProject((previousProject) => ({
-            ...previousProject,
-            components: previousProject.components.filter((component) => component.id !== selectedComponentId)
-        }));
-
-        setSelectedComponentId(null);
-        setStatusMessage('Pin deleted.');
-    };
+    const handleDeleteSelectedComponent = () => actionsRef.current.deleteSelected();
 
     const handleCreateNewProject = () => {
         if (uploadedModelUrlRef.current) {
@@ -393,22 +447,6 @@ function App() {
                     </p>
                 </div>
 
-                <div className="mode-toggle">
-                    <button
-                        type="button"
-                        className={`mode-toggle-btn ${editMode ? 'active' : ''}`}
-                        onClick={() => setEditMode(true)}
-                    >
-                        Edit
-                    </button>
-                    <button
-                        type="button"
-                        className={`mode-toggle-btn ${!editMode ? 'active' : ''}`}
-                        onClick={() => setEditMode(false)}
-                    >
-                        View
-                    </button>
-                </div>
             </header>
 
             <main className={`page-stage ${hasRightRail ? '' : 'page-stage-full'}`}>
@@ -421,6 +459,7 @@ function App() {
                                 modelUrl={modelUrl}
                                 modelFileName={project.model.fileName}
                                 editMode={editMode}
+                                editTool={editTool}
                                 components={project.components}
                                 selectedComponentId={selectedComponentId}
                                 orbitEnabled={!isTransformDragging}
@@ -432,6 +471,62 @@ function App() {
                                 onPinScreenPosition={handlePinScreenPosition}
                             />
                         </ModelErrorBoundary>
+
+                        <div className="viewer-mode-toggle">
+                            <button
+                                type="button"
+                                className={`vmode ${editMode ? 'active' : ''}`}
+                                onClick={() => { setEditMode(true); setEditTool('select'); }}
+                            >
+                                Edit
+                            </button>
+                            <button
+                                type="button"
+                                className={`vmode ${!editMode ? 'active' : ''}`}
+                                onClick={() => setEditMode(false)}
+                            >
+                                View
+                            </button>
+                        </div>
+
+                        {editMode ? (
+                            <div className="viewer-toolbar">
+                                <button
+                                    type="button"
+                                    className={`vtool ${editTool === 'hand' ? 'active' : ''}`}
+                                    onClick={() => setEditTool('hand')}
+                                    title="Navigate (H)"
+                                >
+                                    <svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 1.5v4.5M5.5 4v6a2.5 2.5 0 005 0V5" stroke="currentColor" fill="none" strokeWidth="1.4" strokeLinecap="round"/><path d="M3.5 6.5v3a4.5 4.5 0 009 0v-4" stroke="currentColor" fill="none" strokeWidth="1.4" strokeLinecap="round"/></svg>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`vtool ${editTool === 'select' ? 'active' : ''}`}
+                                    onClick={() => setEditTool('select')}
+                                    title="Select (V)"
+                                >
+                                    <svg viewBox="0 0 16 16" width="14" height="14"><path d="M4 1l8 6-4 1-2 5z" fill="currentColor"/></svg>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`vtool ${editTool === 'add' ? 'active' : ''}`}
+                                    onClick={() => setEditTool('add')}
+                                    title="Add Pin (A)"
+                                >
+                                    <svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none"/></svg>
+                                </button>
+                                <span className="vtool-sep" />
+                                <button
+                                    type="button"
+                                    className="vtool"
+                                    onClick={handleDeleteSelectedComponent}
+                                    disabled={!selectedComponentId}
+                                    title="Delete (Del)"
+                                >
+                                    <svg viewBox="0 0 16 16" width="14" height="14"><path d="M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1M3 4h10M5 4v8a1 1 0 001 1h4a1 1 0 001-1V4" stroke="currentColor" fill="none" strokeWidth="1.3"/></svg>
+                                </button>
+                            </div>
+                        ) : null}
 
                         {selectedComponent && !editMode ? (() => {
                             const cardStyle = {};

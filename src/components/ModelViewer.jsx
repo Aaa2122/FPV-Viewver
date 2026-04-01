@@ -45,28 +45,32 @@ const ScreenPositionTracker = ({ position, onChange }) => {
     return null;
 };
 
-const PinHotspot = ({ component, selected, onSelect, editMode }) => (
-    <group position={component.position}>
-        <Html center zIndexRange={[100, 0]} style={editMode && selected ? { pointerEvents: 'none' } : undefined}>
-            <button
-                type="button"
-                className={`pin-marker ${selected ? 'selected' : ''} ${editMode ? 'edit-mode' : ''}`}
-                onClick={(event) => {
-                    event.stopPropagation();
-                    onSelect(component.id);
-                }}
-            >
-                <span className="pin-dot" />
-                <span className="pin-label">{component.name}</span>
-            </button>
-        </Html>
-    </group>
-);
+const PinHotspot = ({ component, selected, onSelect, editMode, editTool }) => {
+    const noInteract = (editMode && selected) || (editMode && editTool === 'hand');
+    return (
+        <group position={component.position}>
+            <Html center zIndexRange={[100, 0]} style={noInteract ? { pointerEvents: 'none' } : undefined}>
+                <button
+                    type="button"
+                    className={`pin-marker ${selected ? 'selected' : ''} ${editMode ? 'edit-mode' : ''}`}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onSelect(component.id);
+                    }}
+                >
+                    <span className="pin-dot" />
+                    <span className="pin-label">{component.name}</span>
+                </button>
+            </Html>
+        </group>
+    );
+};
 
 const SceneContents = ({
     modelUrl,
     modelFileName,
     editMode,
+    editTool,
     components,
     selectedComponentId,
     orbitEnabled,
@@ -272,7 +276,7 @@ const SceneContents = ({
     );
 
     const handleModelPointerDown = (event) => {
-        if (!editMode) {
+        if (!editMode || editTool !== 'add') {
             return;
         }
 
@@ -367,6 +371,7 @@ const SceneContents = ({
                     selected={component.id === selectedComponentId}
                     onSelect={onSelectComponent}
                     editMode={editMode}
+                    editTool={editTool}
                 />
             ))}
 
@@ -442,6 +447,7 @@ const ModelViewer = ({
     modelUrl,
     modelFileName,
     editMode,
+    editTool,
     components,
     selectedComponentId,
     orbitEnabled,
@@ -465,6 +471,7 @@ const ModelViewer = ({
                         modelUrl={modelUrl}
                         modelFileName={modelFileName}
                         editMode={editMode}
+                        editTool={editTool}
                         components={components}
                         selectedComponentId={selectedComponentId}
                         orbitEnabled={orbitEnabled}
