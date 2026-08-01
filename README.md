@@ -1,56 +1,73 @@
-# FPV Viewer
+# FPV Studio
 
-Visualiseur 3D interactif de drone FPV. Placez des points sur les composants, consultez leurs fiches techniques, et naviguez autour du modele.
+Visualiseur 3D interactif de drone FPV. Placez des points sur les composants, documentez leurs caractéristiques et explorez le modèle dans une interface responsive.
 
-## Apercu
+## Fonctionnalités
 
-![Mode vue avec fiche composant](./docs/screenshots/view.png)
+- **Visualisation 3D** : navigation orbitale, zoom et mise au point animée sur le composant sélectionné
+- **Inspecteur contextuel** : description et caractéristiques techniques réelles, sans données simulées
+- **Mode View** : consultation claire du modèle et de son inventaire
+- **Mode Edit** : ajout, déplacement et suppression de points directement sur le modèle
+- **Édition complète** : nom, description, coordonnées et liste de caractéristiques personnalisables
+- **Raccourcis clavier** : `V` pour sélectionner, `A` pour ajouter, `H` pour naviguer, `Suppr` pour supprimer
+- **Responsive** : panneau latéral sur ordinateur et feuille contextuelle sur mobile
+- **Sauvegarde automatique** : projet conservé dans le navigateur
+- **Import / Export** : projet transportable au format JSON
+- **Chargement progressif** : l’interface est affichée avant le moteur 3D
+- **Vue éclatée** : animation des neuf sous-ensembles 3D réels du drone
+- **Rendu optimisé** : modèle Meshopt allégé et scène recalculée uniquement pendant les interactions
 
-![Mode edition avec toolbar et gizmo](./docs/screenshots/edit.png)
+## Utilisation
 
-![Vue generale sans selection](./docs/screenshots/overview.png)
+1. Ouvrez un modèle `.glb` ou `.gltf` avec **Open model**.
+2. Passez en mode **Edit**.
+3. Choisissez **Add pin**, puis cliquez sur le modèle.
+4. Renseignez les informations du composant dans l’inspecteur.
+5. Revenez en mode **View** pour parcourir la scène.
+6. Utilisez **Export** pour conserver une copie du projet.
 
-## Fonctionnalites
+## Aperçu
 
-- **Visualisation 3D** : chargez un modele `.glb` / `.gltf` et naviguez autour avec orbit, zoom et rotation
-- **Fiches composants** : cliquez sur un point pour afficher une fiche avec specs, metriques et description
-- **Fleche de liaison** : connecteur visuel entre la fiche et le point sur le modele
-- **Mode Edit** : placez, deplacez et supprimez des points avec une toolbar dediee
-- **Outils** : Hand (navigation), Select (selection/deplacement), Add (ajout de point), Delete
-- **Raccourcis clavier** : `Del` supprimer, `Ctrl+C/V` copier/coller, `Escape` deselectionner, `V/A/H` changer d'outil
-- **Points interactifs** : visibles au hover en mode vue, toujours visibles en mode edit avec labels
-- **Sauvegarde auto** : projet persiste dans le navigateur
-- **Import/Export** : projet complet en JSON
+![Vue éclatée du drone](./docs/screenshots/overview.png)
 
-## Workflow
+![Mode View avec le modèle assemblé](./docs/screenshots/view.png)
 
-1. Chargez votre modele avec **Upload Model**
-2. Passez en **Edit** pour placer les points sur les composants
-3. Utilisez l'outil **Add** (+) pour cliquer sur le modele et ajouter un point
-4. Selectionnez un point avec **Select** pour le deplacer avec le gizmo 3D
-5. Completez nom, description et specs dans le panneau d'edition
-6. Passez en **View** pour voir le rendu final avec les fiches
-7. Exportez avec **Export Project**
+![Inspecteur des composants](./docs/screenshots/components.png)
+
+![Mode Edit avec sélection et gizmo 3D](./docs/screenshots/edit.png)
 
 ## Raccourcis
 
 | Touche | Action |
-|--------|--------|
-| `V` | Outil Select |
-| `A` | Outil Add |
-| `H` | Outil Hand |
-| `Delete` | Supprimer le composant selectionne |
-| `Ctrl+C` | Copier |
-| `Ctrl+V` | Coller |
-| `Escape` | Deselectionner |
+| --- | --- |
+| `V` | Outil de sélection |
+| `A` | Ajout d’un point |
+| `H` | Navigation dans la scène |
+| `E` | Éclater ou réassembler le drone |
+| `R` | Réinitialiser la caméra |
+| `Suppr` | Suppression du composant sélectionné |
+| `Ctrl/Cmd + C` | Copier un composant |
+| `Ctrl/Cmd + V` | Coller un composant |
+| `Échap` | Désélectionner |
 
-## Demarrage
+Les raccourcis de modification sont actifs uniquement en mode **Edit** afin d’éviter les suppressions accidentelles pendant la consultation.
+
+## Performances
+
+Le modèle FPV optimisé pèse environ 2,25 Mio au lieu de 29 Mio et passe d’environ 905 000 à 265 000 triangles. Le DPR est limité à 1, les matériaux identiques sont mutualisés, les matrices statiques ne sont plus recalculées et les repères HTML sont retirés pendant la rotation. Les ombres coûteuses ont été supprimées et le canvas 3D reste au repos tant qu’aucune interaction ou animation n’est active.
+
+## Démarrage
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Stack
+## Production
 
-React + Vite + Three.js (React Three Fiber / Drei). Donnees projet stockees localement et transportables via JSON.
+```bash
+npm run build
+npm run preview
+```
+
+Stack : React, Vite, Three.js, React Three Fiber et Drei.
