@@ -1,73 +1,105 @@
 # FPV Studio
 
-Visualiseur 3D interactif de drone FPV. Placez des points sur les composants, documentez leurs caractéristiques et explorez le modèle dans une interface responsive.
+FPV Studio is an interactive 3D workspace for exploring and documenting an FPV drone. Inspect the built-in assembly, attach component pins to the model, edit technical details, and save or share the project as JSON.
 
-## Fonctionnalités
+## Features
 
-- **Visualisation 3D** : navigation orbitale, zoom et mise au point animée sur le composant sélectionné
-- **Inspecteur contextuel** : description et caractéristiques techniques réelles, sans données simulées
-- **Mode View** : consultation claire du modèle et de son inventaire
-- **Mode Edit** : ajout, déplacement et suppression de points directement sur le modèle
-- **Édition complète** : nom, description, coordonnées et liste de caractéristiques personnalisables
-- **Raccourcis clavier** : `V` pour sélectionner, `A` pour ajouter, `H` pour naviguer, `Suppr` pour supprimer
-- **Responsive** : panneau latéral sur ordinateur et feuille contextuelle sur mobile
-- **Sauvegarde automatique** : projet conservé dans le navigateur
-- **Import / Export** : projet transportable au format JSON
-- **Chargement progressif** : l’interface est affichée avant le moteur 3D
-- **Vue éclatée** : animation des neuf sous-ensembles 3D réels du drone
-- **Rendu optimisé** : modèle Meshopt allégé et scène recalculée uniquement pendant les interactions
+- Interactive 3D navigation with orbit, zoom, camera reset, and animated focus
+- View and Edit modes for safe inspection and authoring
+- Component pins placed directly on the model
+- Editable component names, descriptions, positions, and specifications
+- 3D transform controls for repositioning existing pins
+- Searchable scene inventory and contextual component inspector
+- Animated exploded view for the built-in nine-part drone assembly
+- Local `.glb` and `.gltf` model loading
+- Automatic project persistence in the browser
+- Validated JSON project import and export
+- Responsive desktop and mobile interface
+- Lazy-loaded 3D workspace with visible loading and error states
+- Demand-based rendering and an optimized production model
 
-## Utilisation
+## Screenshots
 
-1. Ouvrez un modèle `.glb` ou `.gltf` avec **Open model**.
-2. Passez en mode **Edit**.
-3. Choisissez **Add pin**, puis cliquez sur le modèle.
-4. Renseignez les informations du composant dans l’inspecteur.
-5. Revenez en mode **View** pour parcourir la scène.
-6. Utilisez **Export** pour conserver une copie du projet.
+![Exploded view of the FPV drone](./docs/screenshots/overview.png)
 
-## Aperçu
+![Assembled drone in View mode](./docs/screenshots/view.png)
 
-![Vue éclatée du drone](./docs/screenshots/overview.png)
+![Component inspector](./docs/screenshots/components.png)
 
-![Mode View avec le modèle assemblé](./docs/screenshots/view.png)
+![Pin editing with 3D transform controls](./docs/screenshots/edit.png)
 
-![Inspecteur des composants](./docs/screenshots/components.png)
+## Getting started
 
-![Mode Edit avec sélection et gizmo 3D](./docs/screenshots/edit.png)
+Requirements:
 
-## Raccourcis
+- Node.js 18 or later
+- npm
 
-| Touche | Action |
-| --- | --- |
-| `V` | Outil de sélection |
-| `A` | Ajout d’un point |
-| `H` | Navigation dans la scène |
-| `E` | Éclater ou réassembler le drone |
-| `R` | Réinitialiser la caméra |
-| `Suppr` | Suppression du composant sélectionné |
-| `Ctrl/Cmd + C` | Copier un composant |
-| `Ctrl/Cmd + V` | Coller un composant |
-| `Échap` | Désélectionner |
-
-Les raccourcis de modification sont actifs uniquement en mode **Edit** afin d’éviter les suppressions accidentelles pendant la consultation.
-
-## Performances
-
-Le modèle FPV optimisé pèse environ 2,25 Mio au lieu de 29 Mio et passe d’environ 905 000 à 265 000 triangles. Le DPR est limité à 1, les matériaux identiques sont mutualisés, les matrices statiques ne sont plus recalculées et les repères HTML sont retirés pendant la rotation. Les ombres coûteuses ont été supprimées et le canvas 3D reste au repos tant qu’aucune interaction ou animation n’est active.
-
-## Démarrage
+Install the dependencies and start the development server:
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Production
+Open the local URL printed by Vite in a modern browser.
+
+## Using the editor
+
+1. Explore the included FPV drone or choose **Open model** to load a local `.glb` or `.gltf` file.
+2. Switch to **Edit** mode.
+3. Select **Add pin**, then click a point on the model.
+4. Enter the component name, description, coordinates, and specifications in the inspector.
+5. Use the Select tool and the 3D gizmo to reposition a pin when needed.
+6. Return to **View** mode to inspect the finished scene.
+7. Choose **Export** to download a portable JSON copy of the project.
+
+Projects are autosaved to browser storage. Imported projects reference the model by file name; if a project uses a custom model, reopen that model file after importing or restoring the project.
+
+> The exploded view is tailored to the named groups in the bundled FPV model and is not automatically available for imported models.
+
+## Keyboard shortcuts
+
+| Shortcut | Action | Availability |
+| --- | --- | --- |
+| `V` | Select tool | Edit mode |
+| `A` | Add pin tool | Edit mode |
+| `H` | Hand/navigation tool | Edit mode |
+| `Delete` | Delete the selected component | Edit mode |
+| `Ctrl/Cmd + C` | Copy the selected component | Edit mode |
+| `Ctrl/Cmd + V` | Paste the copied component | Edit mode |
+| `E` | Explode or reassemble the built-in drone | View mode |
+| `R` | Reset the camera | View mode |
+| `Escape` | Clear the selection and return to Select | Any mode |
+
+Edit-only shortcuts are disabled in View mode to prevent accidental changes.
+
+## Production build
 
 ```bash
 npm run build
 npm run preview
 ```
 
-Stack : React, Vite, Three.js, React Three Fiber et Drei.
+The production model is approximately 2.25 MiB, down from the original 29 MiB asset. The viewer also uses a fixed device pixel ratio and renders on demand to reduce idle GPU work.
+
+## Tech stack
+
+- React 18
+- Vite 5
+- Three.js
+- React Three Fiber
+- Drei
+- Tailwind CSS/PostCSS tooling
+
+## Project structure
+
+```text
+src/
+  components/        UI and 3D viewer components
+  utils/             Project schema and validation
+  App.jsx            Application state and project actions
+  index.css          Application styles
+public/              Optimized model and static assets
+docs/screenshots/    README screenshots
+```
